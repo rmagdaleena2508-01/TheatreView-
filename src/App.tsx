@@ -24,6 +24,9 @@ export default function App() {
         dpr={[1, 1.5]}
         camera={{ fov: 50, near: 0.05, far: 400, position: start.toArray() }}
         gl={{ antialias: true }}
+        onCreated={(state) => {
+          if (import.meta.env.DEV) (window as unknown as { __r3f: typeof state }).__r3f = state
+        }}
       >
         <color attach="background" args={['#000']} />
         <fog attach="fog" args={['#000', 18, 55]} />

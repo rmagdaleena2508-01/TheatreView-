@@ -595,6 +595,34 @@ Some details:
 </details>
 
 <details>
+<summary><b>Lights that look like a real cinema</b></summary>
+
+<br>
+
+The first ceiling lights were long, flat glowing bars. They looked fake. Real cinemas light the room
+in layers, all warm white (about 2700 to 3000 K), and all dim together before the film:
+
+- **Recessed downlights.** Round cans set into the ceiling, in a grid over the seats. Each one has a
+  dark metal ring, a glowing lens, and a very faint cone of light below it. Cinemas keep the air clear,
+  so the cones are barely there, brightest right under the lens. The cones are a cheap trick (a soft
+  see-through shape added on top), not real fog, so they cost almost nothing to draw.
+- **Wall sconces.** Small glowing cylinders on the side walls that paint a warm "scallop" of light up
+  and down the wall, like the fixtures you see in most theaters.
+- **Aisle step lights.** Tiny amber lights on every step of every aisle, so people can find their
+  way in the dark. They stay on, dimly, even when the film is playing.
+- **A ceiling.** You only see it from inside the room. From the starting view above the room it is
+  see-through, so the fixtures are hidden there too and nothing floats in the air.
+
+The seats are still lit by a few soft area lights in the ceiling. Using one real spotlight per
+downlight would be far too slow, so the downlights are for looks and the area lights do the work.
+
+I had one funny bug: the cones made the whole picture go black. A tiny math mistake in the cone
+shader made "not a number" values, and the glow effect spread them over the whole screen. Clamping
+the numbers fixed it.
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
@@ -621,7 +649,7 @@ src/
     CameraRig.tsx     the camera flying in and out of seats
     framing.ts        finds the best starting camera for your window size
     Sightline.tsx     the dashed line from seat to screen
-    Lighting.tsx      all the lamps and how bright they are
+    Lighting.tsx      downlights, wall sconces, step lights, and how bright they are
   ui/
     Hud.tsx           the theater box, the seat bar, and shortcut keys
     LightCord.tsx     the pull cord and light slider
