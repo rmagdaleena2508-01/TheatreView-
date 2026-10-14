@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
-import { BufferGeometry, CanvasTexture, DoubleSide, PlaneGeometry, SRGBColorSpace, VideoTexture } from 'three'
+import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
+import { BufferGeometry, CanvasTexture, DoubleSide, PlaneGeometry, Scene, SRGBColorSpace, Vector3, VideoTexture } from 'three'
 import { youtubeCommand, youtubeEmbedUrl, type Movie } from '../movie'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { useTheater } from '../store'
@@ -233,10 +233,12 @@ function VideoPicture({
 // made every camera move repaint a much larger layer and felt sluggish.
 const YT_WIDTH = 1280
 const YT_HEIGHT = 720
-const HTML_PX = 0.025 // drei <Html transform> draws 1 CSS pixel as 0.025 world units
 
 // YouTube does not let other sites read its video pixels, so it can't be a texture.
-// Instead the real YouTube player (an iframe) is placed on the screen in 3D with CSS.
+// Instead the real YouTube player (an iframe) is placed on the screen in 3D with CSS,
+// the way the official three.js "CSS3D YouTube" example does it. CSS3DRenderer only
+// touches the page when the camera actually moved, so hovering seats (which redraws
+// the 3D room) no longer makes the browser re-place the video layer every frame.
 // Our rake guarantees every seat sees over the heads in front to the bottom of the
 // screen, so drawing the player on top of the canvas looks right from every seat.
 function YoutubePicture({
@@ -244,28 +246,25 @@ function YoutubePicture({
   movie,
   width,
   height,
+  center,
 }: {
   geometry: BufferGeometry
   movie: Extract<Movie, { kind: 'youtube' }>
   width: number
   height: number
+  center: Vector3
 }) {
-  const iframe = useRef<HTMLIFrameElement>(null)
+  const gl = useThree((s) => s.gl)
+  const size = useThree((s) => s.size)
+  const invalidate = useThree((s) => s.invalidate)
   const playing = useTheater((s) => s.moviePlaying)
   const muted = useTheater((s) => s.movieMuted)
-  const src = useMemo(() => youtubeEmbedUrl(movie), [movie])
-  // Load the YouTube player only after the theater has drawn and the browser is idle,
-  // so its ~125 KB of scripts don't compete with the first paint.
-  const [ready, setReady] = useState(false)
-  useEffect(() => {
-    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300))
-    const timer = window.setTimeout(() => idle(() => setReady(true)), 600)
-    return () => window.clearTimeout(timer)
-  }, [])
-
-  // Fit a 16:9 picture inside the screen, like a real projector would.
-  const fitWidth = Math.min(width, (height * YT_WIDTH) / YT_HEIGHT)
-  const scale = fitWidth / (YT_WIDTH * HTML_PX)
+  const [layer] = useState(() => {
+    const renderer = new CSS3DRenderer()
+    renderer.domElement.className = 'screen-layer'
+    return { renderer, scene: new Scene() }
+  })
+  const iframe = useRef<HTMLIFrameElement | null>(null)
 
   const sync = () => {
     const el = iframe.current
@@ -275,30 +274,60 @@ function YoutubePicture({
     if (!state.movieMuted) youtubeCommand(el, 'setVolume', [100])
   }
 
+  // The layer sits on top of the 3D canvas, under the buttons.
+  useEffect(() => {
+    const host = gl.domElement.parentElement!
+    host.appendChild(layer.renderer.domElement)
+    return () => layer.renderer.domElement.remove()
+  }, [gl, layer])
+
+  useEffect(() => {
+    layer.renderer.setSize(size.width, size.height)
+    invalidate()
+  }, [layer, size, invalidate])
+
+  // Build the player. It loads only after the theater has drawn and the browser is
+  // idle, so its ~125 KB of scripts don't compete with the first paint.
+  useEffect(() => {
+    const el = document.createElement('iframe')
+    el.className = 'screen-player'
+    el.width = String(YT_WIDTH)
+    el.height = String(YT_HEIGHT)
+    el.title = 'Movie on the cinema screen'
+    el.allow = 'autoplay; encrypted-media; picture-in-picture'
+    el.referrerPolicy = 'strict-origin-when-cross-origin'
+    el.onload = () => {
+      el.contentWindow?.postMessage(JSON.stringify({ event: 'listening' }), '*')
+      sync()
+    }
+    iframe.current = el
+    // Fit a 16:9 picture inside the screen, like a real projector would.
+    const fitWidth = Math.min(width, (height * YT_WIDTH) / YT_HEIGHT)
+    const object = new CSS3DObject(el)
+    object.position.set(center.x, center.y, center.z + 0.03)
+    object.scale.setScalar(fitWidth / YT_WIDTH)
+    layer.scene.add(object)
+    invalidate()
+
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300))
+    const timer = window.setTimeout(() => idle(() => (el.src = youtubeEmbedUrl(movie))), 600)
+    return () => {
+      window.clearTimeout(timer)
+      layer.scene.remove(object)
+      el.remove()
+      iframe.current = null
+    }
+  }, [movie, width, height, center, layer, invalidate])
+
   useEffect(sync, [playing, muted])
 
+  // Runs only on frames the 3D room draws (camera moves, hovers, light fades).
+  useFrame(({ camera }) => layer.renderer.render(layer.scene, camera))
+
   return (
-    <>
-      <mesh geometry={geometry}>
-        <meshBasicMaterial color="#000" side={DoubleSide} />
-      </mesh>
-      {ready && <Html transform position-z={0.03} scale={scale} zIndexRange={[1, 0]} pointerEvents="none">
-        <iframe
-          ref={iframe}
-          className="screen-player"
-          src={src}
-          width={YT_WIDTH}
-          height={YT_HEIGHT}
-          title="Movie on the cinema screen"
-          allow="autoplay; encrypted-media; picture-in-picture"
-          referrerPolicy="strict-origin-when-cross-origin"
-          onLoad={() => {
-            iframe.current?.contentWindow?.postMessage(JSON.stringify({ event: 'listening' }), '*')
-            sync()
-          }}
-        />
-      </Html>}
-    </>
+    <mesh geometry={geometry}>
+      <meshBasicMaterial color="#000" side={DoubleSide} />
+    </mesh>
   )
 }
 
@@ -316,7 +345,14 @@ function Screen() {
         <meshStandardMaterial color="#050505" side={DoubleSide} />
       </mesh>
       {movie?.kind === 'youtube' ? (
-        <YoutubePicture key={movie.id} geometry={picture} movie={movie} width={screen.width} height={screen.height} />
+        <YoutubePicture
+          key={movie.id}
+          geometry={picture}
+          movie={movie}
+          width={screen.width}
+          height={screen.height}
+          center={screen.center}
+        />
       ) : movie?.kind === 'file' || movie?.kind === 'stream' ? (
         <VideoPicture
           key={movie.url}

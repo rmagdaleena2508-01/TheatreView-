@@ -83,6 +83,9 @@ function MoviePanel() {
   )
 }
 
+// Showtimes and booking are built (Phase 4) but switched off until booking launches.
+const SHOWTIMES_ENABLED = false
+
 const timeFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
 
 function ShowPicker() {
@@ -226,8 +229,12 @@ function VenuePanel() {
           rises {rows[rows.length - 1].floorY.toFixed(1)} m, max step {(maxRiser * 100).toFixed(0)} cm
         </dd>
       </dl>
-      <h2 className="venue-heading">Showtime</h2>
-      <ShowPicker />
+      {SHOWTIMES_ENABLED && (
+        <>
+          <h2 className="venue-heading">Showtime</h2>
+          <ShowPicker />
+        </>
+      )}
       <h2 className="venue-heading">Now showing</h2>
       <MoviePanel />
     </section>

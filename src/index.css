@@ -488,3 +488,9 @@ body,
   font-size: 11px;
   color: #3ddc84;
 }
+.screen-layer {
+  position: absolute !important;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}

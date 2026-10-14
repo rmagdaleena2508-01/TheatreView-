@@ -29,11 +29,18 @@
       html, body { margin: 0; background: #000; }
       .boot { position: fixed; inset: 0; display: grid; place-items: center; color: #e8eaf0;
         font: 600 15px/1.4 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: 0.02em; }
+      .boot { z-index: 50; background: #000; transition: opacity 0.5s ease; text-align: center; }
       .boot small { display: block; margin-top: 6px; font-weight: 400; color: #8a8f9c; font-size: 13px; }
+      .boot-bar { display: block; width: 140px; height: 2px; margin: 14px auto 0; border-radius: 2px;
+        background: linear-gradient(90deg, transparent, #ffb547, transparent) 0 0 / 50% 100% no-repeat, #1c1d22;
+        animation: boot-sweep 1.1s ease-in-out infinite; }
+      .boot-done { opacity: 0; pointer-events: none; }
+      @keyframes boot-sweep { from { background-position: -70px 0, 0 0; } to { background-position: 140px 0, 0 0; } }
+      @media (prefers-reduced-motion: reduce) { .boot-bar { animation: none; } }
     </style>
   </head>
   <body>
-    <div id="root"><div class="boot"><div>TheatreView<small>Building the theater…</small></div></div></div>
+    <div id="root"><div class="boot"><div>TheatreView<small>Building the theater…</small><span class="boot-bar"></span></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

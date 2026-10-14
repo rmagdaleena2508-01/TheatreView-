@@ -623,6 +623,44 @@ the numbers fixed it.
 </details>
 
 <details>
+<summary><b>A loading screen you can actually see</b></summary>
+
+<br>
+
+The page used to show "Building the theater…" for only a moment. As soon as the app's code
+started, the message disappeared, and then the screen stayed black for a second or two while the
+browser prepared all the 3D lighting and glow effects. That felt slow and broken.
+
+Now the loading screen stays until the 3D room has really drawn its first picture, and then it fades
+away. While it shows, the browser prepares the 3D effects in the background, so the first picture
+comes faster.
+
+</details>
+
+<details>
+<summary><b>Smoother hovering over seats</b></summary>
+
+<br>
+
+Each time the mouse moves onto a new seat, the 3D room draws a new picture. The old way of placing
+the YouTube player on the screen moved the player again on every one of those pictures, even when
+nothing about the camera had changed. On some laptops that made hovering feel slow. Now the player
+uses three.js's own CSS3D renderer, which only moves the player when the camera really moves.
+
+</details>
+
+<details>
+<summary><b>Showtimes are switched off for now</b></summary>
+
+<br>
+
+The showtime picker and booking are built (Phase 4), but the live site does not have booking turned
+on yet. Showing a picker that does nothing would be confusing, so it is hidden until booking launches.
+It is one switch in the code (`SHOWTIMES_ENABLED` in `src/ui/Hud.tsx`).
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
