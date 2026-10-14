@@ -27,6 +27,8 @@ block you? TheatreView lets you find out first.
 - **Pull the light cord.** A string hangs at the top right. Pull it down to make the room
   brighter. Pull again to change it. There is also a slider.
 - **Curved and flat screens.** Some theaters have a curved screen, so the app bends it too.
+- **Play any YouTube movie.** Paste a YouTube link in the "Now showing" box and it plays on the big
+  screen. You can also paste a direct `.mp4` or `.webm` link.
 
 ![Sitting in seat H23 at the TCL Chinese Theatre IMAX](docs/images/seat-view.jpg)
 
@@ -65,6 +67,8 @@ Other commands:
 | Drag (not sitting) | You walk around the room |
 | Scroll (not sitting) | You zoom in and out |
 | Pull the cord, or press L | The lights change: Movie, Dim, Bright, Full |
+| Paste a YouTube link and press Play | That video plays on the big screen |
+| Pause / Sound on / Stop | Controls the movie (it starts muted) |
 | Select | You pick that seat |
 
 ## How it works
@@ -152,7 +156,7 @@ I am building TheatreView in **6 phases**. Click a phase to see the details.
 
 <br>
 
-- Play a real movie on the screen (free movies made by Blender, like *Tears of Steel*).
+- ✅ Play a real movie on the screen: paste a YouTube link, or a direct video file link.
 - The screen's light changes color with the movie.
 - Sound that comes from the screen, so it is quieter in the back rows.
 - A better seat model made in Blender.
@@ -318,13 +322,40 @@ the THX and SMPTE rules.
 </details>
 
 <details>
+<summary><b>How a YouTube video gets onto a 3D screen</b></summary>
+
+<br>
+
+YouTube does not let other websites read the pixels of its videos. That means the 3D engine cannot
+paint a YouTube video onto the screen like a picture. So I did a trick: I put the real YouTube player
+on the page and tilted and stretched it with CSS so it sits exactly on the 3D screen. When the camera
+moves, the player moves with it.
+
+The seats never cover the player, because the rows are built so every seat can see over the heads in
+front to the bottom of the screen. So drawing the player on top always looks right.
+
+A few small things came with this:
+
+- The video starts **muted**, because browsers only let videos play by themselves when they are quiet.
+  Press "Sound on" to hear it.
+- You cannot click on the YouTube player itself, so that dragging still moves the camera. The Pause,
+  Sound on and Stop buttons talk to the player for you.
+- The video stays flat even on curved screens. The curves are small, so it is hard to notice.
+- The sample movie is *Big Buck Bunny*, a free movie made by the Blender Foundation.
+- Some videos do not allow playing on other websites. Those will show an error inside the player.
+
+Direct `.mp4` or `.webm` links work a different way. They become a real 3D picture, so they glow and
+bend with curved screens. The website that hosts the file has to allow it (this is called CORS).
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
 
 - **AMC Lincoln Square IMAX** is not in the app. Different websites give different screen sizes, so I
   did not trust them.
-- **The movie on the screen** is just moving colors for now. A real movie comes in Phase 3.
 - **The shortcut keys** (L, arrows) do nothing while you are typing in a box or picking a theater.
 
 </details>
@@ -335,10 +366,11 @@ the THX and SMPTE rules.
 src/
   venues.ts           the real theaters and their screen sizes
   layout.ts           builds the room: rows, steps, seats, and the seat score
-  store.ts            remembers the theater, the seat, and the lights
+  store.ts            remembers the theater, the seat, the lights, and the movie
+  movie.ts            reads YouTube and video links, and talks to the YouTube player
   App.tsx             puts the 3D room and the buttons on the page
   scene/
-    Theater.tsx       the screen (flat or curved), floor, walls, row letters
+    Theater.tsx       the screen (flat or curved), the movie on it, floor, walls, row letters
     Seats.tsx         all the seats, mouse-over and click
     CameraRig.tsx     the camera flying in and out of seats
     Sightline.tsx     the dashed line from seat to screen

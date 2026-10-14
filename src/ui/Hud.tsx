@@ -1,9 +1,64 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { seatView } from '../layout'
 import { useTheater } from '../store'
 import { VENUES } from '../venues'
+import { SAMPLE_MOVIE_URL, parseMovieUrl } from '../movie'
 
 const ft = (m: number) => Math.round(m * 3.281)
+
+function MoviePanel() {
+  const movie = useTheater((s) => s.movie)
+  const playing = useTheater((s) => s.moviePlaying)
+  const muted = useTheater((s) => s.movieMuted)
+  const error = useTheater((s) => s.movieError)
+  const { setMovie, setMoviePlaying, setMovieMuted, setMovieError } = useTheater.getState()
+  const [link, setLink] = useState('')
+
+  const load = (text: string) => {
+    const parsed = parseMovieUrl(text)
+    if (!parsed) {
+      setMovieError('Paste a YouTube link (youtube.com or youtu.be) or a direct .mp4 / .webm link.')
+      return
+    }
+    setMovie(parsed)
+    setLink('')
+  }
+
+  return (
+    <div className="movie" aria-label="Now showing">
+      <form
+        className="movie-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          load(link)
+        }}
+      >
+        <input
+          type="url"
+          inputMode="url"
+          placeholder="Paste a YouTube link"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          aria-label="YouTube or video link"
+        />
+        <button type="submit" className="primary">Play</button>
+      </form>
+      {error && <p className="movie-error">{error}</p>}
+      {movie && (
+        <div className="movie-controls">
+          <button onClick={() => setMoviePlaying(!playing)}>{playing ? 'Pause' : 'Play'}</button>
+          <button onClick={() => setMovieMuted(!muted)}>{muted ? 'Sound on' : 'Mute'}</button>
+          <button onClick={() => setMovie(null)}>Stop</button>
+        </div>
+      )}
+      {!movie && (
+        <button className="movie-sample" onClick={() => load(SAMPLE_MOVIE_URL)}>
+          Play a sample movie
+        </button>
+      )}
+    </div>
+  )
+}
 
 function VenuePanel() {
   const theater = useTheater((s) => s.theater)
@@ -52,6 +107,8 @@ function VenuePanel() {
           rises {rows[rows.length - 1].floorY.toFixed(1)} m, max step {(maxRiser * 100).toFixed(0)} cm
         </dd>
       </dl>
+      <h2 className="venue-heading">Now showing</h2>
+      <MoviePanel />
     </section>
   )
 }

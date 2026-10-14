@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { buildTheater, type Seat, type TheaterLayout } from './layout'
 import { DEFAULT_VENUE, VENUES } from './venues'
+import { SAMPLE_MOVIE_URL, parseMovieUrl, type Movie } from './movie'
 
 type Mode = 'overview' | 'pov'
 
@@ -25,6 +26,10 @@ type TheaterState = {
   selected: Seat | null // the seat the user confirmed with "Select"
   mode: Mode
   lightLevel: number // 0 = pitch dark, 1 = house lights fully up
+  movie: Movie | null
+  moviePlaying: boolean
+  movieMuted: boolean
+  movieError: string | null
   setVenue: (id: string) => void
   setHovered: (seat: Seat | null) => void
   focus: (seat: Seat | null) => void
@@ -35,6 +40,10 @@ type TheaterState = {
   exitPov: () => void
   setLightLevel: (level: number) => void
   cycleLight: () => void
+  setMovie: (movie: Movie | null) => void
+  setMoviePlaying: (playing: boolean) => void
+  setMovieMuted: (muted: boolean) => void
+  setMovieError: (error: string | null) => void
 }
 
 export const useTheater = create<TheaterState>((set, get) => ({
@@ -44,6 +53,10 @@ export const useTheater = create<TheaterState>((set, get) => ({
   selected: null,
   mode: 'overview',
   lightLevel: 0.7,
+  movie: parseMovieUrl(SAMPLE_MOVIE_URL),
+  moviePlaying: true,
+  movieMuted: true,
+  movieError: null,
   setVenue: (id) => {
     const venue = VENUES.find((v) => v.id === id) ?? DEFAULT_VENUE
     set({ theater: buildTheater(venue), hovered: null, focused: null, selected: null, mode: 'overview' })
@@ -68,6 +81,10 @@ export const useTheater = create<TheaterState>((set, get) => ({
     const next = LIGHT_PRESETS.find((p) => p.level > current + 0.01) ?? LIGHT_PRESETS[0]
     set({ lightLevel: next.level })
   },
+  setMovie: (movie) => set({ movie, moviePlaying: true, movieMuted: true, movieError: null }),
+  setMoviePlaying: (moviePlaying) => set({ moviePlaying }),
+  setMovieMuted: (movieMuted) => set({ movieMuted }),
+  setMovieError: (movieError) => set({ movieError }),
 }))
 
 // Handy for debugging in the browser console during development.

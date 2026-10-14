@@ -1,13 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Text } from '@react-three/drei'
-import { CanvasTexture, DoubleSide, PlaneGeometry, SRGBColorSpace } from 'three'
+import { Html, Text } from '@react-three/drei'
+import { BufferGeometry, CanvasTexture, DoubleSide, PlaneGeometry, SRGBColorSpace, VideoTexture } from 'three'
+import { youtubeCommand, youtubeEmbedUrl, type Movie } from '../movie'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { useTheater } from '../store'
 
 RectAreaLightUniformsLib.init()
 
-// Placeholder "movie": an animated canvas. Phase 2 swaps this for a real video.
+// Placeholder picture when no movie is loaded: an animated canvas.
 function useScreenTexture() {
   const { canvas, texture } = useMemo(() => {
     const canvas = document.createElement('canvas')
@@ -54,9 +55,127 @@ function curvedPlane(width: number, height: number, depth: number) {
   return geo
 }
 
-function Screen() {
+function PlaceholderPicture({ geometry }: { geometry: BufferGeometry }) {
   const map = useScreenTexture()
+  return (
+    <mesh geometry={geometry}>
+      {/* toneMapped off so the screen is bright enough to bloom */}
+      <meshBasicMaterial map={map} toneMapped={false} side={DoubleSide} />
+    </mesh>
+  )
+}
+
+// A direct video file (.mp4 / .webm) drawn as a real WebGL texture, so it glows and
+// bends with curved screens. The host must allow CORS, or the browser blocks it.
+function FilePicture({ geometry, url }: { geometry: BufferGeometry; url: string }) {
+  const playing = useTheater((s) => s.moviePlaying)
+  const muted = useTheater((s) => s.movieMuted)
+  const setMovieError = useTheater((s) => s.setMovieError)
+
+  const { video, texture } = useMemo(() => {
+    const video = document.createElement('video')
+    video.crossOrigin = 'anonymous'
+    video.src = url
+    video.loop = true
+    video.muted = true
+    video.playsInline = true
+    const texture = new VideoTexture(video)
+    texture.colorSpace = SRGBColorSpace
+    return { video, texture }
+  }, [url])
+
+  useEffect(() => {
+    video.onerror = () => setMovieError("This video file couldn't be loaded. The site may not allow it to be shown here.")
+    return () => {
+      video.pause()
+      video.removeAttribute('src')
+      video.load()
+      texture.dispose()
+    }
+  }, [video, texture, setMovieError])
+
+  useEffect(() => {
+    if (playing) video.play().catch(() => {})
+    else video.pause()
+  }, [video, playing])
+
+  useEffect(() => {
+    video.muted = muted
+  }, [video, muted])
+
+  return (
+    <mesh geometry={geometry}>
+      <meshBasicMaterial map={texture} toneMapped={false} side={DoubleSide} />
+    </mesh>
+  )
+}
+
+const YT_WIDTH = 1280
+const YT_HEIGHT = 720
+const HTML_PX = 0.025 // drei <Html transform> draws 1 CSS pixel as 0.025 world units
+
+// YouTube does not let other sites read its video pixels, so it can't be a texture.
+// Instead the real YouTube player (an iframe) is placed on the screen in 3D with CSS.
+// Our rake guarantees every seat sees over the heads in front to the bottom of the
+// screen, so drawing the player on top of the canvas looks right from every seat.
+function YoutubePicture({
+  geometry,
+  movie,
+  width,
+  height,
+}: {
+  geometry: BufferGeometry
+  movie: Extract<Movie, { kind: 'youtube' }>
+  width: number
+  height: number
+}) {
+  const iframe = useRef<HTMLIFrameElement>(null)
+  const playing = useTheater((s) => s.moviePlaying)
+  const muted = useTheater((s) => s.movieMuted)
+  const src = useMemo(() => youtubeEmbedUrl(movie), [movie])
+
+  // Fit a 16:9 picture inside the screen, like a real projector would.
+  const fitWidth = Math.min(width, (height * YT_WIDTH) / YT_HEIGHT)
+  const scale = fitWidth / (YT_WIDTH * HTML_PX)
+
+  const sync = () => {
+    const el = iframe.current
+    const state = useTheater.getState()
+    youtubeCommand(el, state.moviePlaying ? 'playVideo' : 'pauseVideo')
+    youtubeCommand(el, state.movieMuted ? 'mute' : 'unMute')
+    if (!state.movieMuted) youtubeCommand(el, 'setVolume', [100])
+  }
+
+  useEffect(sync, [playing, muted])
+
+  return (
+    <>
+      <mesh geometry={geometry}>
+        <meshBasicMaterial color="#000" side={DoubleSide} />
+      </mesh>
+      <Html transform position-z={0.03} scale={scale} zIndexRange={[1, 0]} pointerEvents="none">
+        <iframe
+          ref={iframe}
+          className="screen-player"
+          src={src}
+          width={YT_WIDTH}
+          height={YT_HEIGHT}
+          title="Movie on the cinema screen"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          onLoad={() => {
+            iframe.current?.contentWindow?.postMessage(JSON.stringify({ event: 'listening' }), '*')
+            sync()
+          }}
+        />
+      </Html>
+    </>
+  )
+}
+
+function Screen() {
   const { screen } = useTheater((s) => s.theater)
+  const movie = useTheater((s) => s.movie)
   const picture = useMemo(() => curvedPlane(screen.width, screen.height, screen.curveDepth), [screen])
   const frame = useMemo(
     () => curvedPlane(screen.width + 0.6, screen.height + 0.6, screen.curveDepth * 1.02),
@@ -67,10 +186,13 @@ function Screen() {
       <mesh geometry={frame} position-z={-0.06}>
         <meshStandardMaterial color="#050505" side={DoubleSide} />
       </mesh>
-      <mesh geometry={picture}>
-        {/* toneMapped off so the screen is bright enough to bloom */}
-        <meshBasicMaterial map={map} toneMapped={false} side={DoubleSide} />
-      </mesh>
+      {movie?.kind === 'youtube' ? (
+        <YoutubePicture key={movie.id} geometry={picture} movie={movie} width={screen.width} height={screen.height} />
+      ) : movie?.kind === 'file' ? (
+        <FilePicture key={movie.url} geometry={picture} url={movie.url} />
+      ) : (
+        <PlaceholderPicture geometry={picture} />
+      )}
       {/* Light that the screen throws onto the seats */}
       <rectAreaLight
         position-z={screen.curveDepth / 2 + 0.2}

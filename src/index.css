@@ -303,3 +303,69 @@ body,
 .seatbar button {
   white-space: nowrap;
 }
+
+/* Movie on the screen */
+.screen-player {
+  display: block;
+  border: 0;
+  background: #000;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+.topbar,
+.legend,
+.venue,
+.seatbar,
+.cord {
+  z-index: 10;
+}
+.venue-heading {
+  margin: 10px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.movie-form {
+  display: flex;
+  gap: 6px;
+}
+.movie-form input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.movie button {
+  font: inherit;
+  font-size: 12px;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+.movie button.primary {
+  background: var(--accent);
+  font-weight: 600;
+}
+.movie-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.movie-sample {
+  margin-top: 6px;
+  width: 100%;
+}
+.movie-error {
+  margin: 6px 0 0;
+  color: #ff9a8b;
+}

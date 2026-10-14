@@ -94,7 +94,8 @@ Each phase ends with something you can open in a browser and show someone.
 - Research and sources: docs/CINEMA_RESEARCH.md.
 
 ### Phase 3: Make it feel real (frontend)
-- Real movie on the screen with `useVideoTexture` (Blender open movies such as *Tears of Steel*, CC BY).
+- DONE: paste a YouTube link (CSS3D iframe on the screen, controlled with the IFrame API) or a
+  direct .mp4 / .webm link (real VideoTexture). Sample: Big Buck Bunny (Blender, CC BY).
 - Screen light changes color with the movie (sample a tiny copy of the video each frame).
 - Spatial audio: `PositionalAudio` from the screen, so back rows sound further away.
 - Better seat model made in Blender, loaded as `.glb`, converted with `gltfjsx`.
