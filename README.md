@@ -492,6 +492,41 @@ space next to it.
 </details>
 
 <details>
+<summary><b>Making it fast, and keeping the movie smooth</b></summary>
+
+<br>
+
+I measured first with Lighthouse on a phone setting. The first score was 39 out of 100. The page was
+busy for over 17 seconds, mostly because the 3D room was being drawn again and again, 60 times a
+second, even when nothing moved.
+
+What I changed:
+
+- **Draw only when something changes.** The room now draws a new picture only when the camera moves,
+  a seat lights up, or the lights fade. While you watch the movie, the 3D part rests, so the video gets
+  the computer's full attention. This was the biggest fix for the movie getting stuck.
+- **Show something right away.** The page shows "Building the theater…" the moment it opens, before
+  the big 3D code arrives.
+- **Load things later.** The YouTube player waits until the room is ready. The booking code loads only
+  when it is needed.
+- **No extra downloads from other sites.** The row letters used to download a font from another
+  website. Now they are drawn with the computer's own font.
+- **Remember files.** Built files have a fingerprint in their name, so browsers can keep them for a
+  year and not download them again.
+- **Bigger YouTube player.** YouTube picks the picture quality from how big its player is. The player
+  is now 1080p-sized, so YouTube can choose 1080p when the internet is fast enough. (YouTube no longer
+  lets websites force a quality.)
+
+After these changes the score went up to between 52 and 78 (it changes from run to run), and the busy
+time dropped from about 17 seconds to between 0.2 and 4 seconds.
+
+The site has no server code, so there is nothing to "wake up". It is served from Vercel's network,
+close to each visitor. The database is in Mumbai. Free databases fall asleep after a week with no
+visitors, so a small daily job keeps it awake.
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
@@ -535,7 +570,9 @@ PLAN.md               the full product plan
 
 ## Known problems
 
-- The 3D code is one big file (about 500 KB zipped). It will be split up in Phase 6.
+- The 3D code is still one big file (about 470 KB zipped). The booking code is already split out.
+- YouTube shows its own little buttons and title at the start of a video. The rules for using
+  YouTube's player say websites must not cover them up.
 
 ## Help make it better
 
