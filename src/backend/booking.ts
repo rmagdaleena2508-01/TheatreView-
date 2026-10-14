@@ -1,5 +1,9 @@
 import { useEffect } from 'react'
-import { getSupabase } from './supabase'
+import { getSupabase as getClient } from './supabase'
+import { BOOKING_ENABLED } from '../config'
+
+// No database calls at all while booking is switched off.
+const getSupabase = () => (BOOKING_ENABLED ? getClient() : null)
 import { useTheater } from '../store'
 import { CATALOG, catalogUrl } from '../movies'
 import { movieKey, parseMovieUrl } from '../movie'
@@ -9,6 +13,21 @@ export type SeatState = { state: 'booked' | 'held'; mine: boolean; expiresAt: st
 
 const set = useTheater.setState
 const get = useTheater.getState
+
+// Retries a database call when the network or server hiccups (timeouts, 5xx, 429),
+// waiting a bit longer each time with some randomness, so a busy moment with many
+// visitors doesn't turn into everyone retrying at the same instant.
+async function withRetry<T extends { error: unknown; status: number }>(call: () => PromiseLike<T>, tries = 3): Promise<T> {
+  let result = await call()
+  for (let i = 1; i < tries && result.error && isTransient(result.status); i++) {
+    await new Promise((r) => setTimeout(r, 300 * 2 ** i + Math.random() * 300))
+    result = await call()
+  }
+  return result
+}
+
+// 0 = the request never got an answer (network), 429 = too many requests, 5xx = server trouble.
+const isTransient = (status: number) => status === 0 || status === 429 || status >= 500
 
 // Friendly text for errors raised by the database functions.
 function errorText(error: { message?: string } | null) {
@@ -34,12 +53,14 @@ export async function loadShows(venueId: string) {
   const supabase = await getSupabase()
   if (!supabase) return
   const since = new Date(Date.now() - 3 * 3600 * 1000).toISOString()
-  const { data, error } = await supabase
-    .from('shows')
-    .select('id, venue_id, title, starts_at, movie_id')
-    .eq('venue_id', venueId)
-    .gte('starts_at', since)
-    .order('starts_at')
+  const { data, error } = await withRetry(() =>
+    supabase
+      .from('shows')
+      .select('id, venue_id, title, starts_at, movie_id')
+      .eq('venue_id', venueId)
+      .gte('starts_at', since)
+      .order('starts_at'),
+  )
   if (error) {
     set({ bookingMessage: errorText(error), shows: [], showId: null })
     return
@@ -51,7 +72,7 @@ export async function refreshSeats() {
   const showId = get().showId
   const supabase = await getSupabase()
   if (!supabase || !showId) return
-  const { data, error } = await supabase.rpc('get_seat_states', { p_show: showId })
+  const { data, error } = await withRetry(() => supabase.rpc('get_seat_states', { p_show: showId }))
   if (error) {
     set({ bookingMessage: errorText(error) })
     return
@@ -99,6 +120,19 @@ export async function releaseHold() {
   set({ bookingBusy: false })
 }
 
+// When a seat changes, every open browser hears about it at once. If all of them
+// asked the database straight away, 100 visitors would send 100 requests in the
+// same instant. Instead each one waits a short, random moment and several changes
+// close together are folded into a single request.
+let refreshTimer = 0
+function scheduleRefresh() {
+  if (refreshTimer) return
+  refreshTimer = window.setTimeout(() => {
+    refreshTimer = 0
+    refreshSeats()
+  }, 200 + Math.random() * 600)
+}
+
 // Keeps the seat map in sync with the database. Mounted once in App.
 export function useBookingSync() {
   const venueId = useTheater((s) => s.theater.venue.id)
@@ -106,7 +140,7 @@ export function useBookingSync() {
   const seatStates = useTheater((s) => s.seatStates)
 
   useEffect(() => {
-    loadShows(venueId)
+    if (BOOKING_ENABLED) loadShows(venueId)
   }, [venueId])
 
   // Live updates for the chosen show. The database sends "seat_changed" whenever a
@@ -129,7 +163,7 @@ export function useBookingSync() {
       if (cancelled) return
       const channel = supabase
         .channel(`show:${showId}`)
-        .on('broadcast', { event: 'seat_changed' }, () => refreshSeats())
+        .on('broadcast', { event: 'seat_changed' }, () => scheduleRefresh())
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') refreshSeats()
         })
@@ -149,7 +183,7 @@ export function useBookingSync() {
       .filter(Number.isFinite)
     if (!times.length) return
     const wait = Math.max(500, Math.min(...times) - Date.now() + 500)
-    const timer = window.setTimeout(refreshSeats, wait)
+    const timer = window.setTimeout(scheduleRefresh, wait)
     return () => window.clearTimeout(timer)
   }, [seatStates])
 }

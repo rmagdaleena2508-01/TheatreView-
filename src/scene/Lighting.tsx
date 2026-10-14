@@ -206,12 +206,10 @@ export function Lighting() {
   const beamGeometry = useMemo(() => new CylinderGeometry(CAN_RADIUS * 0.9, 1.1, 1, 32, 1, true), [])
 
   useFrame(({ gl, scene, camera, invalidate }, delta) => {
-    // The ceiling is see-through from above (overview), so its fixtures would float.
-    // Show them only when the camera is inside the room.
+    // The ceiling is see-through from above (overview). The lenses face down, so they
+    // vanish on their own from up there; the light cones are faded out. (Hiding the
+    // objects instead made the browser stall the moment the camera entered the room.)
     const inside = camera.position.y < room.height
-    cans.current.visible = inside
-    lenses.current.visible = inside
-    beams.current.visible = inside
 
     const target = useTheater.getState().lightLevel
     easing.damp(level.current, 'current', target, FADE, delta)
@@ -225,7 +223,7 @@ export function Lighting() {
     lensMat.current.color.copy(WARM).multiplyScalar(0.05 + l * 2.4)
     sconceMat.color.copy(AMBER).multiplyScalar(0.6 + l * 2.2)
     stepMat.current.color.copy(AMBER).multiplyScalar(1.2 + l * 0.6)
-    beam.uniforms.uOpacity.value = l * 0.05 // cinemas keep the air clear, so beams are faint
+    beam.uniforms.uOpacity.value = inside ? l * 0.05 : 0 // cinemas keep the air clear, so beams are faint
     scallop.uniforms.uOpacity.value = 0.25 + l * 0.6
     gl.toneMappingExposure = 1 + l * 0.8
     // Fog hides the back rows in the dark; push it away as the lights come up.

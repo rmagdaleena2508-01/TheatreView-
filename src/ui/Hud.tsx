@@ -5,6 +5,7 @@ import { VENUES } from '../venues'
 import { movieKey, parseMovieUrl } from '../movie'
 import { catalogByFilm, catalogUrl } from '../movies'
 import { hasBackend } from '../backend/supabase'
+import { BOOKING_ENABLED } from '../config'
 import { bookSeat, holdSeat, releaseHold } from '../backend/booking'
 import type { Seat } from '../layout'
 
@@ -83,9 +84,6 @@ function MoviePanel() {
   )
 }
 
-// Showtimes and booking are built (Phase 4) but switched off until booking launches.
-const SHOWTIMES_ENABLED = false
-
 const timeFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
 
 function ShowPicker() {
@@ -133,7 +131,7 @@ function BookingActions({ seat }: { seat: Seat }) {
   const selected = useTheater((s) => s.selected)
   const select = useTheater((s) => s.select)
 
-  if (!hasBackend) {
+  if (!hasBackend || !BOOKING_ENABLED) {
     // No backend: Select just remembers the seat in this browser.
     return (
       <button className="primary" onClick={select} disabled={selected === seat}>
@@ -229,7 +227,7 @@ function VenuePanel() {
           rises {rows[rows.length - 1].floorY.toFixed(1)} m, max step {(maxRiser * 100).toFixed(0)} cm
         </dd>
       </dl>
-      {SHOWTIMES_ENABLED && (
+      {BOOKING_ENABLED && (
         <>
           <h2 className="venue-heading">Showtime</h2>
           <ShowPicker />
@@ -295,7 +293,7 @@ export function Hud() {
         <span><i className="dot hover" /> Hovered</span>
         <span><i className="dot focus" /> Your view</span>
         <span><i className="dot selected" /> Yours</span>
-        {hasBackend && <span><i className="dot taken" /> Taken</span>}
+        {hasBackend && BOOKING_ENABLED && <span><i className="dot taken" /> Taken</span>}
       </footer>
 
       {seat && view && (

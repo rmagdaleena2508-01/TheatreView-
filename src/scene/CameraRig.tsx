@@ -1,17 +1,28 @@
-import { useEffect, useRef } from 'react'
-import { useThree } from '@react-three/fiber'
-import { CameraControls } from '@react-three/drei'
+import { useEffect, useRef, useState } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import CameraControlsImpl from 'camera-controls'
-import type { PerspectiveCamera } from 'three'
+import {
+  Box3,
+  Matrix4,
+  Quaternion,
+  Raycaster,
+  Sphere,
+  Spherical,
+  Vector2,
+  Vector3,
+  Vector4,
+  type PerspectiveCamera,
+} from 'three'
 import { eyePosition } from '../layout'
 import { frameOverview } from './framing'
 import { useTheater } from '../store'
 
 const { ACTION } = CameraControlsImpl
+CameraControlsImpl.install({ THREE: { Box3, Matrix4, Quaternion, Raycaster, Sphere, Spherical, Vector2, Vector3, Vector4 } })
 
 const HEAD_TURN = 0.75 // radians you can look left/right from a seat
 const HEAD_TILT = 0.4 // radians you can look up/down from a seat
-const FLY_IN_TIME = 0.5 // seconds-ish for the big flights (into a seat, back out)
+const FLY_IN_TIME = 0.36 // seconds-ish for the big flights (into a seat, back out)
 const SEAT_HOP_TIME = 0.22 // quick slide when moving from one seat to the next
 function panelCover(width: number) {
   const panel = document.querySelector('.venue')
@@ -20,7 +31,33 @@ function panelCover(width: number) {
 }
 
 export function CameraRig() {
-  const controls = useRef<CameraControlsImpl>(null!)
+  const gl = useThree((s) => s.gl)
+  const invalidate = useThree((s) => s.invalidate)
+  const cameraForControls = useThree((s) => s.camera)
+  // Our own small wrapper around camera-controls (instead of drei's) so we can cap
+  // the time step. The room only draws when something changes, so the first frame
+  // after a pause can report several seconds have passed; without the cap the camera
+  // would jump straight to the seat instead of flying there.
+  const [cc] = useState(() => {
+    const c = new CameraControlsImpl(cameraForControls)
+    c.smoothTime = FLY_IN_TIME
+    c.draggingSmoothTime = 0.15
+    return c
+  })
+  const controls = useRef<CameraControlsImpl>(cc)
+  useEffect(() => {
+    cc.connect(gl.domElement)
+    const wake = () => invalidate()
+    const events = ['controlstart', 'control', 'transitionstart', 'update', 'wake'] as const
+    events.forEach((e) => cc.addEventListener(e, wake))
+    return () => {
+      events.forEach((e) => cc.removeEventListener(e, wake))
+      cc.disconnect()
+    }
+  }, [cc, gl, invalidate])
+  useFrame((_, delta) => {
+    cc.update(Math.min(delta, 1 / 30))
+  }, -1)
   const seated = useRef(false) // true once the camera is sitting in a seat
   const mode = useTheater((s) => s.mode)
   const focused = useTheater((s) => s.focused)
@@ -107,5 +144,5 @@ export function CameraRig() {
     }
   }, [mode, focused, theater, frameKey])
 
-  return <CameraControls ref={controls} makeDefault smoothTime={FLY_IN_TIME} draggingSmoothTime={0.15} />
+  return null
 }

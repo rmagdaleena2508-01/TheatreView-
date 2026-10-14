@@ -656,7 +656,60 @@ uses three.js's own CSS3D renderer, which only moves the player when the camera 
 
 The showtime picker and booking are built (Phase 4), but the live site does not have booking turned
 on yet. Showing a picker that does nothing would be confusing, so it is hidden until booking launches.
-It is one switch in the code (`SHOWTIMES_ENABLED` in `src/ui/Hud.tsx`).
+It is one switch in the code (`BOOKING_ENABLED` in `src/config.ts`).
+
+</details>
+
+<details>
+<summary><b>Clicking a seat with no lag</b></summary>
+
+<br>
+
+I measured what happened between your click and the camera moving. Three things were slowing it:
+
+1. **The camera jumped instead of flying.** The 3D room only draws when something changes. After it
+   sat still for a while, the first new frame said "3 seconds have passed", so the camera did the
+   whole trip in one step. I now use my own small wrapper around the camera tool that never lets one
+   frame count for more than 1/30 of a second.
+2. **A pause in the middle of the flight.** The ceiling lights were hidden while the camera was above
+   the room and switched on when it flew inside. Switching them on made the browser stop for about
+   0.1 seconds to get them ready. Now they are always there: the lenses face down, so you can't see
+   them from above anyway, and the light cones just fade out.
+3. **A slow, floaty ease.** The flight now settles faster.
+
+Now the click is noticed in under 20 milliseconds, the camera starts moving right away, and it reaches
+the seat in about a second with no stalls.
+
+</details>
+
+<details>
+<summary><b>Working for 50 or 100 people at the same time</b></summary>
+
+<br>
+
+**The website itself.** The app is just files (no server code), and Vercel copies those files to
+computers all over the world, close to each visitor. A visitor's 3D room runs on their own computer, so
+100 people do not slow each other down. In a test, the page answered 10,000 requests in 15 seconds
+with no errors.
+
+**The database (when booking is switched on).** Supabase's free plan allows 200 live connections and
+100 live messages per second. In a test, 100 people asking for the seat map at the same moment all got
+an answer. To keep it calm when many people are booking:
+
+- Booking is switched off for now (`BOOKING_ENABLED` in `src/config.ts`). While it is off, the app
+  never talks to the database, so there is nothing to overload.
+- When someone takes a seat, every browser hears about it. Instead of all asking the database at the
+  same instant, each one waits a short random moment, and several changes close together become one
+  request.
+- If the database is busy for a moment, the app tries again a little later instead of giving up.
+- Two people can never get the same seat, because the database checks and saves a hold in one step.
+
+**What would need an upgrade for a real launch:**
+
+- More than about 150 people at once with booking on: Supabase Pro (500 connections, 500 messages a
+  second).
+- The free Blender movie streams come from public test servers. Many people watching at once should use
+  a real video host like Cloudflare Stream, Mux or Bunny Stream.
 
 </details>
 
@@ -680,7 +733,8 @@ src/
   store.ts            remembers the theater, the seat, the lights, and the movie
   movie.ts            reads YouTube and video links, and talks to the YouTube player
   movies.ts           the movie list under "Now showing" (YouTube links and HLS streams)
-  App.tsx             puts the 3D room and the buttons on the page
+  App.tsx             puts the 3D room, the buttons and the loading screen on the page
+  config.ts           switches for features that are built but not live yet
   scene/
     Theater.tsx       the screen (flat or curved), the movie on it, floor, walls, row letters
     Seats.tsx         all the seats, mouse-over and click

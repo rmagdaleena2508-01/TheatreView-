@@ -22,7 +22,20 @@ function SceneReady() {
       invalidate()
       requestAnimationFrame(() => requestAnimationFrame(() => live && useTheater.getState().setSceneReady()))
     }
-    gl.compileAsync(scene, camera).then(done, done)
+    // Compile hidden things too (e.g. ceiling lights that only show from inside the
+    // room), otherwise the browser stalls mid-flight the first time they appear.
+    const hidden: { visible: boolean }[] = []
+    scene.traverse((o) => {
+      if (!o.visible) {
+        hidden.push(o)
+        o.visible = true
+      }
+    })
+    const restore = () => hidden.forEach((o) => (o.visible = false))
+    gl.compileAsync(scene, camera).then(
+      () => (restore(), done()),
+      () => (restore(), done()),
+    )
     return () => {
       live = false
     }
