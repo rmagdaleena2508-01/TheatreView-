@@ -184,3 +184,11 @@ for each row execute function public.broadcast_seat_change();
 create trigger bookings_broadcast
 after insert or update or delete on public.bookings
 for each row execute function public.broadcast_seat_change();
+
+-- Supabase grants execute on new functions to anon and authenticated directly,
+-- so "revoke from public" alone isn't enough. Guests who haven't held a seat yet
+-- may only read seat states; nobody may call the trigger function.
+revoke execute on function public.hold_seat(uuid, text) from anon;
+revoke execute on function public.release_hold(uuid) from anon;
+revoke execute on function public.book_seat(uuid, text) from anon;
+revoke execute on function public.broadcast_seat_change() from public, anon, authenticated;
