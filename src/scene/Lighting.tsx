@@ -6,7 +6,6 @@ import {
   BackSide,
   Color,
   CylinderGeometry,
-  DoubleSide,
   FrontSide,
   InstancedMesh,
   MeshBasicMaterial,
