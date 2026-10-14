@@ -7,6 +7,20 @@
     <title>TheatreView</title>
     <meta name="description" content="Sit in a movie seat before you buy the ticket. A 3D cinema seat preview." />
     <meta name="theme-color" content="#000000" />
+    <!-- Social preview (link cards on LinkedIn, WhatsApp, X, Slack, Discord...) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TheatreView" />
+    <meta property="og:title" content="TheatreView: sit in a movie seat before you buy the ticket" />
+    <meta property="og:description" content="Pick a seat in a 3D cinema and see the screen exactly as you would from there. Six real theaters, a score for every seat, live booking." />
+    <meta property="og:url" content="https://theatre-view.vercel.app/" />
+    <meta property="og:image" content="https://theatre-view.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A 3D movie theater with a line from one seat to the screen, next to the words TheatreView: sit in a movie seat before you buy the ticket." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TheatreView: sit in a movie seat before you buy the ticket" />
+    <meta name="twitter:description" content="Pick a seat in a 3D cinema and see the screen exactly as you would from there." />
+    <meta name="twitter:image" content="https://theatre-view.vercel.app/og-image.png" />
     <!-- Open connections early to the two other places the app talks to. -->
     <link rel="preconnect" href="https://www.youtube-nocookie.com" />
     <link rel="preconnect" href="https://tdudqyahnwyjwtxkaosj.supabase.co" crossorigin />
@@ -14,7 +28,7 @@
       /* Shown instantly while the 3D theater loads; React replaces it. */
       html, body { margin: 0; background: #000; }
       .boot { position: fixed; inset: 0; display: grid; place-items: center; color: #e8eaf0;
-        font: 600 15px/1.4 Inter, system-ui, -apple-system, sans-serif; letter-spacing: 0.02em; }
+        font: 600 15px/1.4 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: 0.02em; }
       .boot small { display: block; margin-top: 6px; font-weight: 400; color: #8a8f9c; font-size: 13px; }
     </style>
   </head>

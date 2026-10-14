@@ -1,3 +1,5 @@
+![TheatreView: sit in a movie seat before you buy the ticket](docs/images/social-preview.png)
+
 # TheatreView
 
 **Sit in a movie seat before you buy the ticket.**
@@ -523,6 +525,29 @@ time dropped from about 17 seconds to between 0.2 and 4 seconds.
 The site has no server code, so there is nothing to "wake up". It is served from Vercel's network,
 close to each visitor. The database is in Mumbai. Free databases fall asleep after a week with no
 visitors, so a small daily job keeps it awake.
+
+</details>
+
+<details>
+<summary><b>One font everywhere</b></summary>
+
+<br>
+
+Before, the app asked for the Inter font but never loaded it, so every computer showed its own
+font, and the buttons and boxes used yet another one. Now Inter comes with the app itself (not from
+a font website), and every part uses it: the panels, the buttons, the loading screen, and even the
+row letters and words painted inside the 3D theater.
+
+</details>
+
+<details>
+<summary><b>The link preview picture</b></summary>
+
+<br>
+
+When someone shares the link on LinkedIn or WhatsApp, a picture shows up. I made that picture from a
+real render of the 3D theater, with the name and a short line next to it. It uses only our own
+picture, not frames from the movies, because those belong to the movie studios.
 
 </details>
 

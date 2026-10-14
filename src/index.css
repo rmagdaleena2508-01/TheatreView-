@@ -7,13 +7,23 @@
   --accent: #2f7bff;
   --hover: #5fd4ff;
   --gold: #ffb547;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  --font: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font);
+  font-optical-sizing: auto;
   color: var(--text);
   background: var(--bg);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Form controls don't inherit the page font by default; make them match. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 html,

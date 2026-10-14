@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, DoubleSide, PlaneGeometry, SRGBColorSpace, VideoTexture } from 'three'
 import { youtubeCommand, youtubeEmbedUrl, type Movie } from '../movie'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { useTheater } from '../store'
+import { FONT_STACK, fontReady } from '../fonts'
 
 RectAreaLightUniformsLib.init()
 
@@ -29,7 +30,7 @@ function useScreenTexture() {
     ctx.fillStyle = g
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.fillStyle = 'rgba(255,255,255,0.9)'
-    ctx.font = 'bold 72px system-ui, sans-serif'
+    ctx.font = `700 72px ${FONT_STACK}`
     ctx.textAlign = 'center'
     ctx.fillText('NOW SHOWING', canvas.width / 2, canvas.height / 2 + 24)
     texture.needsUpdate = true
@@ -269,22 +270,30 @@ function Walls() {
   )
 }
 
-// Row letters painted onto small canvases with the system font. This avoids a
-// text library that downloads its own fonts from a third-party CDN.
+// Row letters painted onto small canvases in the app font (Inter, bundled with the
+// site). This avoids a text library that downloads its own fonts from a CDN.
 const letterTextures = new Map<string, CanvasTexture>()
+
+function paintLetter(texture: CanvasTexture, letter: string) {
+  const canvas = texture.image as HTMLCanvasElement
+  const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = '#6d7280'
+  ctx.font = `600 44px ${FONT_STACK}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(letter, 32, 34)
+  texture.needsUpdate = true
+}
+
 function letterTexture(letter: string) {
   let texture = letterTextures.get(letter)
   if (!texture) {
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = 64
-    const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#6d7280'
-    ctx.font = '600 44px system-ui, -apple-system, sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(letter, 32, 34)
     texture = new CanvasTexture(canvas)
     texture.colorSpace = SRGBColorSpace
+    paintLetter(texture, letter)
     letterTextures.set(letter, texture)
   }
   return texture
@@ -292,6 +301,19 @@ function letterTexture(letter: string) {
 
 function RowLabels() {
   const { rows, seatingWidth } = useTheater((s) => s.theater)
+  const invalidate = useThree((s) => s.invalidate)
+  // Repaint the letters in Inter once the font has loaded.
+  useEffect(() => {
+    let live = true
+    fontReady.then(() => {
+      if (!live) return
+      letterTextures.forEach((texture, letter) => paintLetter(texture, letter))
+      invalidate()
+    })
+    return () => {
+      live = false
+    }
+  }, [invalidate])
   return (
     <group>
       {rows.map((row) =>
