@@ -53,7 +53,9 @@ export function youtubeEmbedUrl(movie: Extract<Movie, { kind: 'youtube' }>) {
     playlist: movie.id, // needed for loop to work on a single video
     rel: '0',
     modestbranding: '1',
-    iv_load_policy: '3',
+    iv_load_policy: '3', // no video annotations
+    disablekb: '1', // keys belong to the theater (arrows move seats), not the player
+    fs: '0', // no full-screen button
     enablejsapi: '1',
     start: String(movie.start),
     origin: window.location.origin,

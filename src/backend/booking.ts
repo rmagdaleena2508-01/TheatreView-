@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { supabase } from './supabase'
+import { getSupabase } from './supabase'
 import { useTheater } from '../store'
 import { CATALOG, catalogUrl } from '../movies'
 import { parseMovieUrl } from '../movie'
@@ -18,6 +18,7 @@ function errorText(error: { message?: string } | null) {
 // Everyone gets a quiet anonymous account the first time they hold a seat, so a
 // hold belongs to someone without asking for an email up front.
 async function ensureSignedIn() {
+  const supabase = await getSupabase()
   if (!supabase) return false
   const { data } = await supabase.auth.getSession()
   if (data.session) return true
@@ -30,6 +31,7 @@ async function ensureSignedIn() {
 }
 
 export async function loadShows(venueId: string) {
+  const supabase = await getSupabase()
   if (!supabase) return
   const since = new Date(Date.now() - 3 * 3600 * 1000).toISOString()
   const { data, error } = await supabase
@@ -47,6 +49,7 @@ export async function loadShows(venueId: string) {
 
 export async function refreshSeats() {
   const showId = get().showId
+  const supabase = await getSupabase()
   if (!supabase || !showId) return
   const { data, error } = await supabase.rpc('get_seat_states', { p_show: showId })
   if (error) {
@@ -63,6 +66,7 @@ export async function refreshSeats() {
 
 export async function holdSeat(seatId: string) {
   const showId = get().showId
+  const supabase = await getSupabase()
   if (!supabase || !showId) return
   set({ bookingBusy: true, bookingMessage: null })
   if (await ensureSignedIn()) {
@@ -75,6 +79,7 @@ export async function holdSeat(seatId: string) {
 
 export async function bookSeat(seatId: string) {
   const showId = get().showId
+  const supabase = await getSupabase()
   if (!supabase || !showId) return
   set({ bookingBusy: true, bookingMessage: null })
   const { error } = await supabase.rpc('book_seat', { p_show: showId, p_seat: seatId })
@@ -85,6 +90,7 @@ export async function bookSeat(seatId: string) {
 
 export async function releaseHold() {
   const showId = get().showId
+  const supabase = await getSupabase()
   if (!supabase || !showId) return
   set({ bookingBusy: true, bookingMessage: null })
   const { error } = await supabase.rpc('release_hold', { p_show: showId })
@@ -117,16 +123,24 @@ export function useBookingSync() {
   }, [showId])
 
   useEffect(() => {
-    if (!supabase || !showId) return
-    const channel = supabase
-      .channel(`show:${showId}`)
-      .on('broadcast', { event: 'seat_changed' }, () => refreshSeats())
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') refreshSeats()
-      })
+    const pending = getSupabase()
+    if (!pending || !showId) return
+    let stop = () => {}
+    let cancelled = false
+    pending.then((supabase) => {
+      if (cancelled) return
+      const channel = supabase
+        .channel(`show:${showId}`)
+        .on('broadcast', { event: 'seat_changed' }, () => refreshSeats())
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') refreshSeats()
+        })
+      stop = () => supabase.removeChannel(channel)
+    })
     refreshSeats()
     return () => {
-      supabase?.removeChannel(channel)
+      cancelled = true
+      stop()
     }
   }, [showId])
 

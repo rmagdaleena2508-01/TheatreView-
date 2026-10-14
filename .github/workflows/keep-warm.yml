@@ -1,0 +1,22 @@
+# Free Supabase projects go to sleep after a week with no traffic, and the first
+# visitor after that waits for the database to wake up. This pings it once a day.
+name: Keep the database awake
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Supabase for one showtime
+        env:
+          # The publishable key is public (it is in the website already).
+          SUPABASE_URL: https://tdudqyahnwyjwtxkaosj.supabase.co
+          SUPABASE_KEY: sb_publishable_xZWMUaR6GSVlsPQJGAcQfA_wN408lgb
+        run: |
+          curl --fail --silent --show-error \
+            "$SUPABASE_URL/rest/v1/shows?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" > /dev/null

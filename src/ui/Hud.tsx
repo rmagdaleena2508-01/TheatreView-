@@ -4,7 +4,7 @@ import { useTheater } from '../store'
 import { VENUES } from '../venues'
 import { parseMovieUrl } from '../movie'
 import { catalogByFilm, catalogUrl } from '../movies'
-import { supabase } from '../backend/supabase'
+import { hasBackend } from '../backend/supabase'
 import { bookSeat, holdSeat, releaseHold } from '../backend/booking'
 import type { Seat } from '../layout'
 
@@ -85,7 +85,7 @@ function ShowPicker() {
   const shows = useTheater((s) => s.shows)
   const showId = useTheater((s) => s.showId)
   const setShow = useTheater((s) => s.setShow)
-  if (!supabase) return <p className="venue-city">Booking is off. Add Supabase keys to turn it on (see README).</p>
+  if (!hasBackend) return <p className="venue-city">Booking is off. Add Supabase keys to turn it on (see README).</p>
   if (!shows.length) return <p className="venue-city">No showtimes for this theater yet.</p>
   return (
     <select
@@ -126,7 +126,7 @@ function BookingActions({ seat }: { seat: Seat }) {
   const selected = useTheater((s) => s.selected)
   const select = useTheater((s) => s.select)
 
-  if (!supabase) {
+  if (!hasBackend) {
     // No backend: Select just remembers the seat in this browser.
     return (
       <button className="primary" onClick={select} disabled={selected === seat}>
@@ -284,7 +284,7 @@ export function Hud() {
         <span><i className="dot hover" /> Hovered</span>
         <span><i className="dot focus" /> Your view</span>
         <span><i className="dot selected" /> Yours</span>
-        {supabase && <span><i className="dot taken" /> Taken</span>}
+        {hasBackend && <span><i className="dot taken" /> Taken</span>}
       </footer>
 
       {seat && view && (

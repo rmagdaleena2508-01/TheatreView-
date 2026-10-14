@@ -16,8 +16,12 @@ export default function App() {
   const start = useTheater.getState().theater.overview.position
   return (
     <div className="app">
+      {/* frameloop="demand": draw a new frame only when something changes (camera
+          move, light fade, hover). While you just watch the movie, the 3D scene sits
+          still and the GPU and main thread are free for the video. */}
       <Canvas
-        dpr={[1, 2]}
+        frameloop="demand"
+        dpr={[1, 1.5]}
         camera={{ fov: 50, near: 0.05, far: 400, position: start.toArray() }}
         gl={{ antialias: true }}
       >

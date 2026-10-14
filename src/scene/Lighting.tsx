@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import { easing } from 'maath'
 import type { Fog, HemisphereLight, MeshStandardMaterial, PointLight, RectAreaLight } from 'three'
 import type { TheaterLayout } from '../layout'
@@ -27,10 +27,15 @@ export function Lighting() {
   const ceilingMats = useRef<MeshStandardMaterial[]>([])
   const level = useRef({ current: useTheater.getState().lightLevel })
 
-  useFrame(({ gl, scene }, delta) => {
+  const invalidate = useThree((s) => s.invalidate)
+  // Start drawing frames again when the light level changes.
+  useEffect(() => useTheater.subscribe((s, prev) => s.lightLevel !== prev.lightLevel && invalidate()), [invalidate])
+
+  useFrame(({ gl, scene, invalidate }, delta) => {
     const target = useTheater.getState().lightLevel
     easing.damp(level.current, 'current', target, FADE, delta)
     const l = level.current.current
+    if (Math.abs(l - target) > 0.001) invalidate() // keep fading until we arrive
 
     hemi.current.intensity = 0.2 + l * 2.6
     for (const p of sconces.current) if (p) p.intensity = 2 + l * 14

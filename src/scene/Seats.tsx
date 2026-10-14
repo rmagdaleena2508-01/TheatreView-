@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, Color, InstancedMesh, Object3D } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import type { ThreeEvent } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useTheater } from '../store'
 
 const BASE = new Color('#3b3e48')
@@ -37,6 +37,7 @@ export function Seats() {
   const seatStates = useTheater((s) => s.seatStates)
   const setHovered = useTheater((s) => s.setHovered)
   const sit = useTheater((s) => s.sit)
+  const invalidate = useThree((s) => s.invalidate)
 
   // Place every seat once per venue.
   useLayoutEffect(() => {
@@ -48,7 +49,8 @@ export function Seats() {
     }
     mesh.current.instanceMatrix.needsUpdate = true
     mesh.current.computeBoundingSphere()
-  }, [seats])
+    invalidate()
+  }, [seats, invalidate])
 
   // Recolor only when the hovered / focused / selected seat changes.
   useLayoutEffect(() => {
@@ -63,7 +65,8 @@ export function Seats() {
       mesh.current.setColorAt(seat.index, color)
     }
     mesh.current.instanceColor!.needsUpdate = true
-  }, [seats, hovered, focused, selected, seatStates])
+    invalidate()
+  }, [seats, hovered, focused, selected, seatStates, invalidate])
 
   const onMove = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()

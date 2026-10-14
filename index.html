@@ -5,9 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TheatreView</title>
+    <meta name="description" content="Sit in a movie seat before you buy the ticket. A 3D cinema seat preview." />
+    <meta name="theme-color" content="#000000" />
+    <!-- Open connections early to the two other places the app talks to. -->
+    <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+    <link rel="preconnect" href="https://tdudqyahnwyjwtxkaosj.supabase.co" crossorigin />
+    <style>
+      /* Shown instantly while the 3D theater loads; React replaces it. */
+      html, body { margin: 0; background: #000; }
+      .boot { position: fixed; inset: 0; display: grid; place-items: center; color: #e8eaf0;
+        font: 600 15px/1.4 Inter, system-ui, -apple-system, sans-serif; letter-spacing: 0.02em; }
+      .boot small { display: block; margin-top: 6px; font-weight: 400; color: #8a8f9c; font-size: 13px; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot"><div>TheatreView<small>Building the theater…</small></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

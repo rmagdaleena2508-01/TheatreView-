@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Html, Text } from '@react-three/drei'
+import { Html } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, DoubleSide, PlaneGeometry, SRGBColorSpace, VideoTexture } from 'three'
 import { youtubeCommand, youtubeEmbedUrl, type Movie } from '../movie'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
@@ -19,7 +19,8 @@ function useScreenTexture() {
     return { canvas, texture }
   }, [])
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
+    invalidate() // the placeholder animates, so keep drawing while it is on screen
     const ctx = canvas.getContext('2d')!
     const t = clock.elapsedTime
     const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
@@ -103,6 +104,11 @@ function FilePicture({ geometry, url }: { geometry: BufferGeometry; url: string 
     video.muted = muted
   }, [video, muted])
 
+  // A video texture only updates when a frame is drawn, so keep drawing while it plays.
+  useFrame(({ invalidate }) => {
+    if (playing) invalidate()
+  })
+
   return (
     <mesh geometry={geometry}>
       <meshBasicMaterial map={texture} toneMapped={false} side={DoubleSide} />
@@ -110,8 +116,10 @@ function FilePicture({ geometry, url }: { geometry: BufferGeometry; url: string 
   )
 }
 
-const YT_WIDTH = 1280
-const YT_HEIGHT = 720
+// YouTube picks the stream quality from the player's size on the page. A 1080p-sized
+// player lets it choose 1080p when the connection allows it.
+const YT_WIDTH = 1920
+const YT_HEIGHT = 1080
 const HTML_PX = 0.025 // drei <Html transform> draws 1 CSS pixel as 0.025 world units
 
 // YouTube does not let other sites read its video pixels, so it can't be a texture.
@@ -133,6 +141,14 @@ function YoutubePicture({
   const playing = useTheater((s) => s.moviePlaying)
   const muted = useTheater((s) => s.movieMuted)
   const src = useMemo(() => youtubeEmbedUrl(movie), [movie])
+  // Load the YouTube player only after the theater has drawn and the browser is idle,
+  // so its ~125 KB of scripts don't compete with the first paint.
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300))
+    const timer = window.setTimeout(() => idle(() => setReady(true)), 600)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   // Fit a 16:9 picture inside the screen, like a real projector would.
   const fitWidth = Math.min(width, (height * YT_WIDTH) / YT_HEIGHT)
@@ -153,7 +169,7 @@ function YoutubePicture({
       <mesh geometry={geometry}>
         <meshBasicMaterial color="#000" side={DoubleSide} />
       </mesh>
-      <Html transform position-z={0.03} scale={scale} zIndexRange={[1, 0]} pointerEvents="none">
+      {ready && <Html transform position-z={0.03} scale={scale} zIndexRange={[1, 0]} pointerEvents="none">
         <iframe
           ref={iframe}
           className="screen-player"
@@ -168,7 +184,7 @@ function YoutubePicture({
             sync()
           }}
         />
-      </Html>
+      </Html>}
     </>
   )
 }
@@ -253,21 +269,41 @@ function Walls() {
   )
 }
 
+// Row letters painted onto small canvases with the system font. This avoids a
+// text library that downloads its own fonts from a third-party CDN.
+const letterTextures = new Map<string, CanvasTexture>()
+function letterTexture(letter: string) {
+  let texture = letterTextures.get(letter)
+  if (!texture) {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 64
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#6d7280'
+    ctx.font = '600 44px system-ui, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(letter, 32, 34)
+    texture = new CanvasTexture(canvas)
+    texture.colorSpace = SRGBColorSpace
+    letterTextures.set(letter, texture)
+  }
+  return texture
+}
+
 function RowLabels() {
   const { rows, seatingWidth } = useTheater((s) => s.theater)
   return (
     <group>
       {rows.map((row) =>
         [-1, 1].map((side) => (
-          <Text
+          <mesh
             key={`${row.index}${side}`}
             position={[side * (seatingWidth / 2 + 0.5), row.floorY + 0.02, row.z]}
             rotation-x={-Math.PI / 2}
-            fontSize={0.32}
-            color="#6d7280"
           >
-            {row.letter}
-          </Text>
+            <planeGeometry args={[0.45, 0.45]} />
+            <meshBasicMaterial map={letterTexture(row.letter)} transparent depthWrite={false} />
+          </mesh>
         )),
       )}
     </group>
