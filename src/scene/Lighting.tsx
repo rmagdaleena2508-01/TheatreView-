@@ -13,6 +13,7 @@ import {
   ShaderMaterial,
   type Fog,
   type HemisphereLight,
+  type MeshStandardMaterial,
   type PointLight,
   type RectAreaLight,
 } from 'three'
@@ -118,6 +119,7 @@ export function Lighting() {
   const sconces = useRef<PointLight[]>([])
   const area = useRef<RectAreaLight[]>([])
   const lensMat = useRef<MeshBasicMaterial>(null!)
+  const canMat = useRef<MeshStandardMaterial>(null!)
   const stepMat = useRef<MeshBasicMaterial>(null!)
   const cans = useRef<InstancedMesh>(null!)
   const lenses = useRef<InstancedMesh>(null!)
@@ -210,6 +212,8 @@ export function Lighting() {
     // vanish on their own from up there; the light cones are faded out. (Hiding the
     // objects instead made the browser stall the moment the camera entered the room.)
     const inside = camera.position.y < room.height
+    canMat.current.opacity = inside ? 1 : 0
+    canMat.current.depthWrite = inside
 
     const target = useTheater.getState().lightLevel
     easing.damp(level.current, 'current', target, FADE, delta)
@@ -251,7 +255,9 @@ export function Lighting() {
       {/* Recessed downlights: dark metal can, glowing lens, soft cone of light. */}
       <instancedMesh ref={cans} args={[undefined, undefined, maxDownlights]}>
         <cylinderGeometry args={[CAN_RADIUS + 0.03, CAN_RADIUS + 0.03, 0.12, 24, 1, true]} />
-        <meshStandardMaterial color="#1b1b20" metalness={0.6} roughness={0.4} side={BackSide} />
+        {/* Always drawn (switching objects on and off made the browser stall); from
+            above the ceiling the cans fade to fully see-through instead. */}
+        <meshStandardMaterial ref={canMat} color="#1b1b20" metalness={0.6} roughness={0.4} side={BackSide} transparent />
       </instancedMesh>
       <instancedMesh ref={lenses} args={[undefined, undefined, maxDownlights]}>
         <circleGeometry args={[CAN_RADIUS, 24]} />
