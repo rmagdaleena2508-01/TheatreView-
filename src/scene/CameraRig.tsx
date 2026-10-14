@@ -1,19 +1,33 @@
 import { useEffect, useRef } from 'react'
+import { useThree } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
 import CameraControlsImpl from 'camera-controls'
+import type { PerspectiveCamera } from 'three'
 import { eyePosition } from '../layout'
+import { frameOverview } from './framing'
 import { useTheater } from '../store'
 
 const { ACTION } = CameraControlsImpl
 
 const HEAD_TURN = 0.75 // radians you can look left/right from a seat
 const HEAD_TILT = 0.4 // radians you can look up/down from a seat
+function panelCover(width: number) {
+  const panel = document.querySelector('.venue')
+  if (!panel || width < 700) return 0
+  return panel.getBoundingClientRect().right + 8
+}
 
 export function CameraRig() {
   const controls = useRef<CameraControlsImpl>(null!)
   const mode = useTheater((s) => s.mode)
   const focused = useTheater((s) => s.focused)
   const theater = useTheater((s) => s.theater)
+  const panelOpen = useTheater((s) => s.panelOpen)
+  const size = useThree((s) => s.size)
+  const camera = useThree((s) => s.camera) as PerspectiveCamera
+  // Re-frame the overview when the window or the panel changes, but never move
+  // the camera while you are sitting in a seat.
+  const frameKey = mode === 'overview' ? `${size.width}x${size.height}:${panelOpen}` : 'seat'
 
   useEffect(() => {
     const c = controls.current
@@ -54,11 +68,15 @@ export function CameraRig() {
       c.mouseButtons.wheel = ACTION.DOLLY
       c.mouseButtons.right = ACTION.TRUCK
       c.touches.two = ACTION.TOUCH_DOLLY_TRUCK
-      const { position: p, target: t } = theater.overview
+      // Wait a frame so the panel has its final size before we measure it.
+      await new Promise((r) => requestAnimationFrame(r))
+      if (cancelled) return
+      const view = frameOverview(theater, camera.fov, size.width, size.height, panelCover(size.width))
+      const { position: p, target: t } = view
       await c.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, true)
       if (cancelled) return
       c.minDistance = 4
-      c.maxDistance = theater.room.depth * 2.5
+      c.maxDistance = Math.max(theater.room.depth * 2.5, view.distance * 1.6)
       c.maxPolarAngle = Math.PI / 2.1 // never go under the floor
     }
 
@@ -67,7 +85,7 @@ export function CameraRig() {
     return () => {
       cancelled = true
     }
-  }, [mode, focused, theater])
+  }, [mode, focused, theater, frameKey])
 
   return <CameraControls ref={controls} makeDefault smoothTime={0.55} draggingSmoothTime={0.15} />
 }

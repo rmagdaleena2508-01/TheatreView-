@@ -39,6 +39,8 @@ type TheaterState = {
   bookingBusy: boolean
   bookingMessage: string | null
   setShow: (id: string) => void
+  panelOpen: boolean // the theater + movie panel on the left
+  setPanelOpen: (open: boolean) => void
   setVenue: (id: string) => void
   setHovered: (seat: Seat | null) => void
   focus: (seat: Seat | null) => void
@@ -71,6 +73,8 @@ export const useTheater = create<TheaterState>((set, get) => ({
   seatStates: {},
   bookingBusy: false,
   bookingMessage: null,
+  panelOpen: typeof window === 'undefined' || (window.innerWidth >= 1100 && window.innerHeight >= 700),
+  setPanelOpen: (panelOpen) => set({ panelOpen }),
   setShow: (showId) => set({ showId, seatStates: {}, bookingMessage: null }),
   setVenue: (id) => {
     const venue = VENUES.find((v) => v.id === id) ?? DEFAULT_VENUE

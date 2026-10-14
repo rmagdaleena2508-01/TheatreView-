@@ -434,3 +434,42 @@ body,
   background: rgba(47, 123, 255, 0.28);
   box-shadow: inset 2px 0 0 var(--accent);
 }
+
+/* Collapsible left panel */
+.venue {
+  max-height: calc(100vh - 68px);
+  overflow-y: auto;
+}
+.venue > select:first-of-type {
+  width: calc(100% - 34px);
+}
+.venue-close {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  width: 28px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+.venue-close:hover { color: var(--text); }
+.venue-open {
+  position: fixed;
+  top: 52px;
+  left: 16px;
+  z-index: 10;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}

@@ -167,9 +167,22 @@ function VenuePanel() {
   const setVenue = useTheater((s) => s.setVenue)
   const { venue, screen, room, rows, seats } = theater
   const maxRiser = Math.max(...rows.slice(1).map((r, i) => r.floorY - rows[i].floorY), 0)
+  const panelOpen = useTheater((s) => s.panelOpen)
+  const setPanelOpen = useTheater((s) => s.setPanelOpen)
+
+  if (!panelOpen) {
+    return (
+      <button className="venue-open" onClick={() => setPanelOpen(true)} aria-expanded="false">
+        {venue.name} · Movies <span aria-hidden>▸</span>
+      </button>
+    )
+  }
 
   return (
     <section className="venue" aria-label="Venue">
+      <button className="venue-close" onClick={() => setPanelOpen(false)} aria-label="Hide panel" aria-expanded="true">
+        ◂
+      </button>
       <select
         value={venue.id}
         onChange={(e) => {

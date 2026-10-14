@@ -73,6 +73,7 @@ The app works without this. You only need it for holding and booking seats.
 | Do this | What happens |
 |---|---|
 | Pick a theater in the box at the top left | The room changes to that theater |
+| ◂ / ▸ on the left panel | Folds the panel away or opens it again |
 | Move your mouse over a seat | A line shows where that seat looks at the screen |
 | Click a seat | You sit in it |
 | Drag (while sitting) | You look around |
@@ -474,6 +475,23 @@ happens, YouTube shows its own message on the screen and you can pick another on
 </details>
 
 <details>
+<summary><b>The camera fits the room to your screen</b></summary>
+
+<br>
+
+At first the starting camera was always in the same spot. On a wide laptop screen that made the
+theater look tiny, with lots of black space around it. Now the app measures your window and moves
+the camera as close as it can while the whole screen and every seat still fit. Wide screens get a
+lower, "standing at the back" view. Tall phone screens get a higher view from above. It does this
+again when you resize the window.
+
+The info panel on the left can now be folded away with the ◂ button. On small laptop screens it
+starts folded, so it does not cover the seats. When it is open, the camera centers the room in the
+space next to it.
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
@@ -498,6 +516,7 @@ src/
     Theater.tsx       the screen (flat or curved), the movie on it, floor, walls, row letters
     Seats.tsx         all the seats, mouse-over and click
     CameraRig.tsx     the camera flying in and out of seats
+    framing.ts        finds the best starting camera for your window size
     Sightline.tsx     the dashed line from seat to screen
     Lighting.tsx      all the lamps and how bright they are
   ui/
@@ -516,8 +535,6 @@ PLAN.md               the full product plan
 
 ## Known problems
 
-- In very tall IMAX rooms, the top of the screen can be cut off in the starting view. Drag to move
-  around, or sit in a seat to see the whole screen.
 - The 3D code is one big file (about 500 KB zipped). It will be split up in Phase 6.
 
 ## Help make it better
