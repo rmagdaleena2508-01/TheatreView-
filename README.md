@@ -30,7 +30,8 @@ block you? TheatreView lets you find out first.
   brighter. Pull again to change it. There is also a slider.
 - **Curved and flat screens.** Some theaters have a curved screen, so the app bends it too.
 - **Pick a movie.** Under "Now showing" you can pick from a list: Spider-Man: No Way Home and
-  Spider-Man: Brand New Day (trailers and scenes), plus free Blender movies. Or paste your own
+  Spider-Man: Brand New Day (trailers and scenes), plus free Blender movies. The Blender movies play
+  in sharp 1080p straight on the 3D screen, with no YouTube buttons. Or paste your own
   YouTube link, or a direct `.mp4` or `.webm` link.
 
 ![Sitting in seat H23 at the TCL Chinese Theatre IMAX](docs/images/seat-view.jpg)
@@ -560,6 +561,40 @@ picture, not frames from the movies, because those belong to the movie studios.
 </details>
 
 <details>
+<summary><b>Two ways to play a movie, and why</b></summary>
+
+<br>
+
+I looked at how other people put video inside a 3D world. There are two ways:
+
+1. **Put YouTube's own player on top of the 3D screen** (what the three.js "CSS3D YouTube" example
+   does). This is the only allowed way to show YouTube videos like the Spider-Man trailers. But
+   YouTube decides the picture quality by itself, it shows its own buttons, and YouTube's rules say
+   websites must not hide them. Websites cannot force 1080p anymore; YouTube removed that in 2019.
+2. **Play the video file ourselves and paint it onto the 3D screen** (a "video texture"). This gives
+   full control: the app can start at the best quality, there are no YouTube buttons, the picture
+   bends with curved screens, and it glows like a real projector. But you need the right to show the
+   video, and the place it comes from has to allow it.
+
+So I use both. The Spider-Man clips stay on YouTube. The free Blender movies play the second way, as
+HLS streams (a video cut into small pieces in several qualities, the way Netflix-style players work).
+The app starts at the best quality and only drops down if the internet gets slow. The panel shows the
+quality it is playing, like "Playing in 1080p".
+
+Some details:
+
+- The film keeps its own shape. A 16:9 movie on a wide 2.39:1 screen gets black bars on the sides,
+  like a real projector, instead of being stretched.
+- The 3D room draws a new picture only when the video has a new frame (about 24 times a second), not
+  as fast as it can.
+- The stream player code (hls.js) loads only when you pick a stream, so it does not slow down the
+  first visit.
+- Right now the streams come from free public test servers (Mux and Unified Streaming). For a real
+  launch, the movies should move to a paid video host like Cloudflare Stream, Mux or Bunny Stream.
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
@@ -578,7 +613,7 @@ src/
   layout.ts           builds the room: rows, steps, seats, and the seat score
   store.ts            remembers the theater, the seat, the lights, and the movie
   movie.ts            reads YouTube and video links, and talks to the YouTube player
-  movies.ts           the movie list under "Now showing"
+  movies.ts           the movie list under "Now showing" (YouTube links and HLS streams)
   App.tsx             puts the 3D room and the buttons on the page
   scene/
     Theater.tsx       the screen (flat or curved), the movie on it, floor, walls, row letters

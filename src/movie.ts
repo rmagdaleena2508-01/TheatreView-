@@ -2,7 +2,18 @@
 // - youtube: shown with YouTube's own player, placed on the screen in 3D (CSS3D).
 //   YouTube does not let other sites read its video pixels, so it cannot be a WebGL texture.
 // - file: a direct .mp4 / .webm link, drawn as a real WebGL video texture (needs CORS).
-export type Movie = { kind: 'youtube'; id: string; start: number; url: string } | { kind: 'file'; url: string }
+// - stream: an HLS (.m3u8) adaptive stream, also a real WebGL texture. The stream
+//   offers several qualities; we play the best one the connection can keep up with.
+export type Movie =
+  | { kind: 'youtube'; id: string; start: number; url: string }
+  | { kind: 'file'; url: string }
+  | { kind: 'stream'; url: string }
+
+// A short, stable key so two Movie objects for the same video compare equal.
+export function movieKey(movie: Movie | null) {
+  if (!movie) return null
+  return movie.kind === 'youtube' ? `youtube:${movie.id}` : `${movie.kind}:${movie.url}`
+}
 
 const YOUTUBE_ID = /^[\w-]{11}$/
 
@@ -39,6 +50,7 @@ export function parseMovieUrl(input: string): Movie | null {
     const id = fromQuery ?? fromPath
     return id && YOUTUBE_ID.test(id) ? { kind: 'youtube', id, start, url: text } : null
   }
+  if (/\.m3u8$/i.test(url.pathname)) return { kind: 'stream', url: url.href }
   if (/\.(mp4|webm|m4v|mov|ogv)$/i.test(url.pathname)) return { kind: 'file', url: url.href }
   return null
 }

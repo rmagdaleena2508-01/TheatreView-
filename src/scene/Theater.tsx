@@ -67,53 +67,164 @@ function PlaceholderPicture({ geometry }: { geometry: BufferGeometry }) {
   )
 }
 
-// A direct video file (.mp4 / .webm) drawn as a real WebGL texture, so it glows and
-// bends with curved screens. The host must allow CORS, or the browser blocks it.
-function FilePicture({ geometry, url }: { geometry: BufferGeometry; url: string }) {
+// A video we can draw ourselves: a direct file (.mp4 / .webm) or an HLS stream (.m3u8).
+// It becomes a real WebGL texture, so it is sharp, glows, and bends with curved screens.
+// The host must allow CORS, or the browser refuses to hand the pixels to WebGL.
+// Same arc as the screen, but only `width` wide, so a narrower picture sits exactly
+// on the curved screen surface.
+function fittedPicture(screenWidth: number, screenDepth: number, width: number, height: number) {
+  if (screenDepth <= 0) return curvedPlane(width, height, 0)
+  const half = screenWidth / 2
+  const radius = (screenDepth * screenDepth + half * half) / (2 * screenDepth)
+  return curvedPlane(width, height, radius - Math.sqrt(radius * radius - (width / 2) ** 2))
+}
+
+function VideoPicture({
+  geometry,
+  url,
+  stream,
+  width,
+  height,
+  curveDepth,
+}: {
+  geometry: BufferGeometry
+  url: string
+  stream: boolean
+  width: number
+  height: number
+  curveDepth: number
+}) {
   const playing = useTheater((s) => s.moviePlaying)
   const muted = useTheater((s) => s.movieMuted)
-  const setMovieError = useTheater((s) => s.setMovieError)
-
-  const { video, texture } = useMemo(() => {
-    const video = document.createElement('video')
-    video.crossOrigin = 'anonymous'
-    video.src = url
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    const texture = new VideoTexture(video)
-    texture.colorSpace = SRGBColorSpace
-    return { video, texture }
-  }, [url])
+  const invalidate = useThree((s) => s.invalidate)
+  // Made inside the effect (not during render) so every mount gets its own video and
+  // texture, and unmounting cleans up exactly what it made.
+  const [media, setMedia] = useState<{ video: HTMLVideoElement; texture: VideoTexture } | null>(null)
+  const [aspect, setAspect] = useState(16 / 9)
+  // Fit the film inside the screen without stretching, like a real projector: black
+  // bars at the sides (or top and bottom) where the film doesn't reach.
+  const fitted = useMemo(() => {
+    const fitWidth = Math.min(width, height * aspect)
+    return fittedPicture(width, curveDepth, fitWidth, fitWidth / aspect)
+  }, [width, height, curveDepth, aspect])
 
   useEffect(() => {
-    video.onerror = () => setMovieError("This video file couldn't be loaded. The site may not allow it to be shown here.")
+    const { setMovieError, setMovieQuality } = useTheater.getState()
+    const video = document.createElement('video')
+    video.crossOrigin = 'anonymous'
+    video.loop = true
+    video.muted = useTheater.getState().movieMuted
+    video.playsInline = true
+    // Some browsers only decode new frames for a video that is on the page, so keep it
+    // in the page but invisible. The 3D screen shows it through the texture.
+    video.setAttribute('aria-hidden', 'true')
+    video.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none'
+    document.body.appendChild(video)
+    const texture = new VideoTexture(video)
+    texture.colorSpace = SRGBColorSpace
+
+    let destroyed = false
+    let hls: { destroy: () => void } | null = null
+    video.onerror = () => setMovieError("This video couldn't be loaded. The site may not allow it to be shown here.")
+    video.onloadedmetadata = () => {
+      if (!hls) setMovieQuality(`${video.videoHeight}p`)
+    }
+    video.onresize = () => {
+      if (video.videoWidth && video.videoHeight) setAspect(video.videoWidth / video.videoHeight)
+    }
+    // The source arrives a moment after the element is made (hls.js loads first), so
+    // start playing as soon as there is something to play.
+    video.oncanplay = () => {
+      if (useTheater.getState().moviePlaying && video.paused) video.play().catch(() => {})
+    }
+
+    if (stream) {
+      // Use hls.js wherever it works (it lets us start at the best quality). Newer Chrome
+      // and Safari can also play HLS by themselves, but then they start blurry and climb
+      // slowly, so that is only the fallback (e.g. iPhones without Media Source support).
+      // hls.js/light: the same player without subtitles and alternate audio, much smaller.
+      import('hls.js/light').then(({ default: Hls }) => {
+        if (destroyed) return
+        if (!Hls.isSupported()) {
+          if (video.canPlayType('application/vnd.apple.mpegurl')) video.src = url
+          else setMovieError("This browser can't play HLS streams.")
+          return
+        }
+        const player = new Hls({
+          capLevelToPlayerSize: false, // the screen is huge in the 3D room; don't cap by element size
+          abrEwmaDefaultEstimate: 8_000_000, // assume a good connection (8 Mbps) until measured
+          maxBufferLength: 30, // keep 30 s ahead so short network hiccups don't stall the movie
+        })
+        hls = player
+        // Start straight at the best quality. hls.js still steps down by itself if the
+        // connection can't keep up, but most people never see a blurry first minute.
+        player.on(Hls.Events.MANIFEST_PARSED, () => {
+          player.startLevel = player.levels.length - 1
+        })
+        player.on(Hls.Events.LEVEL_SWITCHED, (_e, data) => {
+          const level = player.levels[data.level]
+          if (level) setMovieQuality(`${level.height}p`)
+        })
+        player.on(Hls.Events.ERROR, (_e, data) => {
+          if (data.fatal) setMovieError('The stream stopped loading. Try another movie.')
+        })
+        player.loadSource(url)
+        player.attachMedia(video)
+      })
+    } else {
+      video.src = url
+    }
+
+    // Draw a new 3D frame only when the video has a new picture (24-30 times a second),
+    // instead of redrawing the whole room at full speed.
+    const hasFrameCallback = 'requestVideoFrameCallback' in video
+    let frameRequest = 0
+    const onFrame = () => {
+      invalidate()
+      frameRequest = video.requestVideoFrameCallback(onFrame)
+    }
+    if (hasFrameCallback) frameRequest = video.requestVideoFrameCallback(onFrame)
+
+    setMedia({ video, texture })
     return () => {
+      destroyed = true
+      if (hasFrameCallback) video.cancelVideoFrameCallback(frameRequest)
+      hls?.destroy()
       video.pause()
       video.removeAttribute('src')
       video.load()
+      video.remove()
       texture.dispose()
+      setMedia(null)
     }
-  }, [video, texture, setMovieError])
+  }, [url, stream, invalidate])
 
   useEffect(() => {
-    if (playing) video.play().catch(() => {})
-    else video.pause()
-  }, [video, playing])
+    if (!media) return
+    if (playing) media.video.play().catch(() => {})
+    else media.video.pause()
+  }, [media, playing])
 
   useEffect(() => {
-    video.muted = muted
-  }, [video, muted])
+    if (media) media.video.muted = muted
+  }, [media, muted])
 
-  // A video texture only updates when a frame is drawn, so keep drawing while it plays.
+  // Older browsers without requestVideoFrameCallback: keep drawing while it plays.
   useFrame(({ invalidate }) => {
-    if (playing) invalidate()
+    if (playing && media && !('requestVideoFrameCallback' in media.video)) invalidate()
   })
 
   return (
-    <mesh geometry={geometry}>
-      <meshBasicMaterial map={texture} toneMapped={false} side={DoubleSide} />
-    </mesh>
+    <>
+      <mesh geometry={geometry}>
+        <meshBasicMaterial color="#000" side={DoubleSide} />
+      </mesh>
+      {media && (
+        <mesh geometry={fitted} position-z={0.005}>
+          <meshBasicMaterial key={media.texture.uuid} map={media.texture} toneMapped={false} side={DoubleSide} />
+        </mesh>
+      )}
+    </>
   )
 }
 
@@ -206,8 +317,16 @@ function Screen() {
       </mesh>
       {movie?.kind === 'youtube' ? (
         <YoutubePicture key={movie.id} geometry={picture} movie={movie} width={screen.width} height={screen.height} />
-      ) : movie?.kind === 'file' ? (
-        <FilePicture key={movie.url} geometry={picture} url={movie.url} />
+      ) : movie?.kind === 'file' || movie?.kind === 'stream' ? (
+        <VideoPicture
+          key={movie.url}
+          geometry={picture}
+          url={movie.url}
+          stream={movie.kind === 'stream'}
+          width={screen.width}
+          height={screen.height}
+          curveDepth={screen.curveDepth}
+        />
       ) : (
         <PlaceholderPicture geometry={picture} />
       )}

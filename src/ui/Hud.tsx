@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { seatView } from '../layout'
 import { useTheater } from '../store'
 import { VENUES } from '../venues'
-import { parseMovieUrl } from '../movie'
+import { movieKey, parseMovieUrl } from '../movie'
 import { catalogByFilm, catalogUrl } from '../movies'
 import { hasBackend } from '../backend/supabase'
 import { bookSeat, holdSeat, releaseHold } from '../backend/booking'
@@ -18,7 +18,8 @@ function MoviePanel() {
   const { setMovie, setMoviePlaying, setMovieMuted, setMovieError } = useTheater.getState()
   const [link, setLink] = useState('')
   const groups = useMemo(catalogByFilm, [])
-  const playingId = movie?.kind === 'youtube' ? movie.id : null
+  const playingKey = movieKey(movie)
+  const quality = useTheater((s) => s.movieQuality)
 
   const load = (text: string) => {
     const parsed = parseMovieUrl(text)
@@ -39,8 +40,8 @@ function MoviePanel() {
             {group.movies.map((m) => (
               <button
                 key={m.id}
-                className={m.youtubeId === playingId ? 'movie-pick active' : 'movie-pick'}
-                aria-pressed={m.youtubeId === playingId}
+                className={movieKey(parseMovieUrl(m.url)) === playingKey ? 'movie-pick active' : 'movie-pick'}
+                aria-pressed={movieKey(parseMovieUrl(m.url)) === playingKey}
                 title={`${m.film}: ${m.label} (YouTube · ${m.channel})`}
                 onClick={() => load(catalogUrl(m))}
               >
@@ -68,6 +69,9 @@ function MoviePanel() {
         <button type="submit" className="primary">Play</button>
       </form>
       {error && <p className="movie-error">{error}</p>}
+      {movie && movie.kind !== 'youtube' && quality && (
+        <p className="movie-quality">Playing in {quality}</p>
+      )}
       {movie && (
         <div className="movie-controls">
           <button onClick={() => setMoviePlaying(!playing)}>{playing ? 'Pause' : 'Play'}</button>

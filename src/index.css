@@ -483,3 +483,8 @@ body,
   backdrop-filter: blur(12px);
   cursor: pointer;
 }
+.movie-quality {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #3ddc84;
+}

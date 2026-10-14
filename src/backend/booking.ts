@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { getSupabase } from './supabase'
 import { useTheater } from '../store'
 import { CATALOG, catalogUrl } from '../movies'
-import { parseMovieUrl } from '../movie'
+import { movieKey, parseMovieUrl } from '../movie'
 
 export type Show = { id: string; venue_id: string; title: string; starts_at: string; movie_id: string | null }
 export type SeatState = { state: 'booked' | 'held'; mine: boolean; expiresAt: string | null }
@@ -116,10 +116,8 @@ export function useBookingSync() {
   useEffect(() => {
     const show = get().shows.find((s) => s.id === showId)
     const movie = CATALOG.find((m) => m.id === show?.movie_id)
-    const current = get().movie
-    if (movie && !(current?.kind === 'youtube' && current.id === movie.youtubeId)) {
-      get().setMovie(parseMovieUrl(catalogUrl(movie)))
-    }
+    const next = movie ? parseMovieUrl(catalogUrl(movie)) : null
+    if (next && movieKey(next) !== movieKey(get().movie)) get().setMovie(next)
   }, [showId])
 
   useEffect(() => {

@@ -32,6 +32,7 @@ type TheaterState = {
   moviePlaying: boolean
   movieMuted: boolean
   movieError: string | null
+  movieQuality: string | null // e.g. "1080p", for streams we draw ourselves
   // Booking (Phase 4). Empty when the app runs without Supabase keys.
   shows: Show[]
   showId: string | null
@@ -55,6 +56,7 @@ type TheaterState = {
   setMoviePlaying: (playing: boolean) => void
   setMovieMuted: (muted: boolean) => void
   setMovieError: (error: string | null) => void
+  setMovieQuality: (quality: string | null) => void
 }
 
 export const useTheater = create<TheaterState>((set, get) => ({
@@ -68,6 +70,7 @@ export const useTheater = create<TheaterState>((set, get) => ({
   moviePlaying: true,
   movieMuted: true,
   movieError: null,
+  movieQuality: null,
   shows: [],
   showId: null,
   seatStates: {},
@@ -110,10 +113,11 @@ export const useTheater = create<TheaterState>((set, get) => ({
     const next = LIGHT_PRESETS.find((p) => p.level > current + 0.01) ?? LIGHT_PRESETS[0]
     set({ lightLevel: next.level })
   },
-  setMovie: (movie) => set({ movie, moviePlaying: true, movieMuted: true, movieError: null }),
+  setMovie: (movie) => set({ movie, moviePlaying: true, movieMuted: true, movieError: null, movieQuality: null }),
   setMoviePlaying: (moviePlaying) => set({ moviePlaying }),
   setMovieMuted: (movieMuted) => set({ movieMuted }),
   setMovieError: (movieError) => set({ movieError }),
+  setMovieQuality: (movieQuality) => set({ movieQuality }),
 }))
 
 // Handy for debugging in the browser console during development.
