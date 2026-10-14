@@ -180,7 +180,7 @@ I am building TheatreView in **6 phases**. Click a phase to see the details.
 - ✅ Play a real movie on the screen: paste a YouTube link, or a direct video file link.
 - The screen's light changes color with the movie.
 - Sound that comes from the screen, so it is quieter in the back rows.
-- A better seat model made in Blender.
+- ✅ Better chair model: padded seat, leaning backrest, armrests, rounded edges.
 - Touch controls for phones, a full-screen button, and a calm mode for people who do not like motion.
 
 </details>
@@ -710,6 +710,28 @@ an answer. To keep it calm when many people are booking:
   second).
 - The free Blender movie streams come from public test servers. Many people watching at once should use
   a real video host like Cloudflare Stream, Mux or Bunny Stream.
+
+</details>
+
+<details>
+<summary><b>Smooth flights in and out of seats, and real-looking chairs</b></summary>
+
+<br>
+
+When you left a seat, the camera flew backwards in a straight line at head height, right through the
+rows behind you. Chairs flashed in and out as the camera passed through them, and the move looked
+like it was cutting. Now the camera follows a smooth curve: it lifts up out of the row first, then
+sweeps back. Going in, it comes down onto the seat from above. Both moves start the instant you click
+and settle gently, and hopping to the next seat is a quick slide.
+
+The chairs used to be plain boxes. Now each chair is built like a real cinema seat: a padded cushion,
+a padded backrest that leans back about 12 degrees, armrests on posts, and a base, all with rounded
+edges so the light rolls over them. Blender was not available on my computer, so the chair is built
+in code from rounded shapes, which also keeps it small.
+
+A detailed chair has about 1,000 triangles, and the biggest theater has 945 chairs. Checking the mouse
+against all of those triangles every time it moves would be slow, so the mouse is checked against one
+invisible simple box per chair instead. The chairs you see and the boxes you point at line up exactly.
 
 </details>
 

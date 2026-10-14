@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { BoxGeometry, Color, InstancedMesh, Object3D } from 'three'
+import { BoxGeometry, Color, InstancedMesh, Object3D, Vector3 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useTheater } from '../store'
 
@@ -12,24 +13,56 @@ const BOOKED_MINE = new Color('#3ddc84')
 const TAKEN = new Color('#16171b') // booked by someone else
 const HELD_OTHER = new Color('#5a3f1c') // someone else is deciding
 
-// One cinema seat built from a few boxes, merged so it is a single geometry.
+// One cinema seat, modelled like a real auditorium chair and merged into a single
+// geometry so all seats still draw in one go: padded seat cushion, a padded backrest
+// leaning back about 12 degrees, armrests on posts, and a pedestal base. Corners are
+// rounded so light rolls over the edges instead of showing hard box lines.
 // Recliner venues have deeper rows, so the seat gets deeper too.
+function rounded(width: number, height: number, depth: number, radius: number, segments = 1) {
+  return new RoundedBoxGeometry(width, height, depth, segments, Math.min(radius, width / 2, height / 2, depth / 2))
+}
+
 function makeSeatGeometry(seatWidth: number, rowDepth: number) {
-  const w = seatWidth * 0.86
-  const d = Math.min(0.9, rowDepth * 0.45)
-  const cushion = new BoxGeometry(w, 0.14, d).translate(0, 0.45, 0)
-  const back = new BoxGeometry(w, 0.62, 0.12).translate(0, 0.78, d / 2)
-  const armL = new BoxGeometry(0.06, 0.26, d).translate(-w / 2 - 0.02, 0.6, 0.02)
-  const armR = armL.clone().translate(w + 0.04, 0, 0)
-  const legs = new BoxGeometry(w * 0.7, 0.38, d * 0.6).translate(0, 0.19, 0.05)
-  return mergeGeometries([cushion, back, armL, armR, legs])!
+  const w = seatWidth * 0.84
+  const d = Math.min(0.85, rowDepth * 0.44)
+  const lean = 0.21 // radians, ~12 degrees
+  const cushion = rounded(w, 0.15, d, 0.06, 2).rotateX(-0.05).translate(0, 0.45, -0.01)
+  const back = rounded(w * 0.96, 0.62, 0.13, 0.06, 2)
+    .translate(0, 0.31, 0) // pivot at the bottom edge so it leans back from the seat
+    .rotateX(lean)
+    .translate(0, 0.5, d / 2 - 0.02)
+  const arm = rounded(0.075, 0.055, d * 0.92, 0.025).translate(0, 0.66, 0.02)
+  const post = rounded(0.055, 0.24, 0.09, 0.02).translate(0, 0.53, 0.05)
+  const half = w / 2 + 0.035
+  const parts = [
+    cushion,
+    back,
+    arm.clone().translate(-half, 0, 0),
+    arm.clone().translate(half, 0, 0),
+    post.clone().translate(-half, 0, 0),
+    post.clone().translate(half, 0, 0),
+    rounded(w * 0.42, 0.36, d * 0.42, 0.04).translate(0, 0.18, 0.04), // pedestal
+  ]
+  // Keep each part's own smooth normals (recomputing them here would facet the curves).
+  return mergeGeometries(parts)!
 }
 
 export function Seats() {
   const mesh = useRef<InstancedMesh>(null!)
+  const hit = useRef<InstancedMesh>(null!)
   const theater = useTheater((s) => s.theater)
   const { seats, venue } = theater
   const geometry = useMemo(() => makeSeatGeometry(venue.seatWidth, venue.rowDepth), [venue])
+  // The detailed chair has ~1,000 triangles. Testing the mouse against all of them for
+  // every seat on every mouse move would be slow, so the mouse is tested against one
+  // invisible box per seat instead.
+  const hitBox = useMemo(() => {
+    geometry.computeBoundingBox()
+    const box = geometry.boundingBox!
+    const size = box.getSize(new Vector3())
+    const centre = box.getCenter(new Vector3())
+    return new BoxGeometry(size.x, size.y, size.z).translate(centre.x, centre.y, centre.z)
+  }, [geometry])
   const hovered = useTheater((s) => s.hovered)
   const focused = useTheater((s) => s.focused)
   const selected = useTheater((s) => s.selected)
@@ -46,9 +79,12 @@ export function Seats() {
       dummy.position.copy(seat.position)
       dummy.updateMatrix()
       mesh.current.setMatrixAt(seat.index, dummy.matrix)
+      hit.current.setMatrixAt(seat.index, dummy.matrix)
     }
-    mesh.current.instanceMatrix.needsUpdate = true
-    mesh.current.computeBoundingSphere()
+    for (const m of [mesh.current, hit.current]) {
+      m.instanceMatrix.needsUpdate = true
+      m.computeBoundingSphere()
+    }
     invalidate()
   }, [seats, invalidate])
 
@@ -84,14 +120,19 @@ export function Seats() {
   }
 
   return (
-    <instancedMesh
-      ref={mesh}
-      args={[geometry, undefined, seats.length]}
-      onPointerMove={onMove}
-      onPointerOut={() => setHovered(null)}
-      onClick={onClick}
-    >
-      <meshStandardMaterial roughness={0.85} metalness={0.05} />
-    </instancedMesh>
+    <>
+      <instancedMesh ref={mesh} args={[geometry, undefined, seats.length]} raycast={() => null}>
+        <meshStandardMaterial roughness={0.8} metalness={0.05} />
+      </instancedMesh>
+      <instancedMesh
+        ref={hit}
+        args={[hitBox, undefined, seats.length]}
+        onPointerMove={onMove}
+        onPointerOut={() => setHovered(null)}
+        onClick={onClick}
+      >
+        <meshBasicMaterial visible={false} />
+      </instancedMesh>
+    </>
   )
 }
