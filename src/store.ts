@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { buildTheater, type Seat, type TheaterLayout } from './layout'
 import { DEFAULT_VENUE, VENUES } from './venues'
-import { SAMPLE_MOVIE_URL, parseMovieUrl, type Movie } from './movie'
+import { parseMovieUrl, type Movie } from './movie'
+import { DEFAULT_CATALOG_MOVIE, catalogUrl } from './movies'
 import type { SeatState, Show } from './backend/booking'
 
 type Mode = 'overview' | 'pov'
@@ -61,7 +62,7 @@ export const useTheater = create<TheaterState>((set, get) => ({
   selected: null,
   mode: 'overview',
   lightLevel: 0.7,
-  movie: parseMovieUrl(SAMPLE_MOVIE_URL),
+  movie: parseMovieUrl(catalogUrl(DEFAULT_CATALOG_MOVIE)),
   moviePlaying: true,
   movieMuted: true,
   movieError: null,

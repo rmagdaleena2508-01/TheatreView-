@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { seatView } from '../layout'
 import { useTheater } from '../store'
 import { VENUES } from '../venues'
-import { SAMPLE_MOVIE_URL, parseMovieUrl } from '../movie'
+import { parseMovieUrl } from '../movie'
+import { catalogByFilm, catalogUrl } from '../movies'
 import { supabase } from '../backend/supabase'
 import { bookSeat, holdSeat, releaseHold } from '../backend/booking'
 import type { Seat } from '../layout'
@@ -16,6 +17,8 @@ function MoviePanel() {
   const error = useTheater((s) => s.movieError)
   const { setMovie, setMoviePlaying, setMovieMuted, setMovieError } = useTheater.getState()
   const [link, setLink] = useState('')
+  const groups = useMemo(catalogByFilm, [])
+  const playingId = movie?.kind === 'youtube' ? movie.id : null
 
   const load = (text: string) => {
     const parsed = parseMovieUrl(text)
@@ -29,6 +32,24 @@ function MoviePanel() {
 
   return (
     <div className="movie" aria-label="Now showing">
+      <div className="movie-list" role="list">
+        {groups.map((group) => (
+          <div key={group.film} className="movie-group" role="listitem">
+            <p className="movie-film">{group.film}</p>
+            {group.movies.map((m) => (
+              <button
+                key={m.id}
+                className={m.youtubeId === playingId ? 'movie-pick active' : 'movie-pick'}
+                aria-pressed={m.youtubeId === playingId}
+                title={`${m.film}: ${m.label} (YouTube · ${m.channel})`}
+                onClick={() => load(catalogUrl(m))}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
       <form
         className="movie-form"
         onSubmit={(e) => {
@@ -39,7 +60,7 @@ function MoviePanel() {
         <input
           type="url"
           inputMode="url"
-          placeholder="Paste a YouTube link"
+          placeholder="Or paste your own YouTube link"
           value={link}
           onChange={(e) => setLink(e.target.value)}
           aria-label="YouTube or video link"
@@ -53,11 +74,6 @@ function MoviePanel() {
           <button onClick={() => setMovieMuted(!muted)}>{muted ? 'Sound on' : 'Mute'}</button>
           <button onClick={() => setMovie(null)}>Stop</button>
         </div>
-      )}
-      {!movie && (
-        <button className="movie-sample" onClick={() => load(SAMPLE_MOVIE_URL)}>
-          Play a sample movie
-        </button>
       )}
     </div>
   )

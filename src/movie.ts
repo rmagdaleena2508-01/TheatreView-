@@ -4,9 +4,6 @@
 // - file: a direct .mp4 / .webm link, drawn as a real WebGL video texture (needs CORS).
 export type Movie = { kind: 'youtube'; id: string; start: number; url: string } | { kind: 'file'; url: string }
 
-// Big Buck Bunny, an open movie by the Blender Foundation (CC BY 3.0).
-export const SAMPLE_MOVIE_URL = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ'
-
 const YOUTUBE_ID = /^[\w-]{11}$/
 
 function parseStart(t: string | null) {

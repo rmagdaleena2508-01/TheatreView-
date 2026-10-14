@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { supabase } from './supabase'
 import { useTheater } from '../store'
+import { CATALOG, catalogUrl } from '../movies'
+import { parseMovieUrl } from '../movie'
 
-export type Show = { id: string; venue_id: string; title: string; starts_at: string }
+export type Show = { id: string; venue_id: string; title: string; starts_at: string; movie_id: string | null }
 export type SeatState = { state: 'booked' | 'held'; mine: boolean; expiresAt: string | null }
 
 const set = useTheater.setState
@@ -32,7 +34,7 @@ export async function loadShows(venueId: string) {
   const since = new Date(Date.now() - 3 * 3600 * 1000).toISOString()
   const { data, error } = await supabase
     .from('shows')
-    .select('id, venue_id, title, starts_at')
+    .select('id, venue_id, title, starts_at, movie_id')
     .eq('venue_id', venueId)
     .gte('starts_at', since)
     .order('starts_at')
@@ -104,6 +106,16 @@ export function useBookingSync() {
   // Live updates for the chosen show. The database sends "seat_changed" whenever a
   // hold or booking changes; we then re-read the seat states. We also re-read right
   // after subscribing, because a change can slip through while the channel connects.
+  // Picking a showtime puts that show's movie on the screen.
+  useEffect(() => {
+    const show = get().shows.find((s) => s.id === showId)
+    const movie = CATALOG.find((m) => m.id === show?.movie_id)
+    const current = get().movie
+    if (movie && !(current?.kind === 'youtube' && current.id === movie.youtubeId)) {
+      get().setMovie(parseMovieUrl(catalogUrl(movie)))
+    }
+  }, [showId])
+
   useEffect(() => {
     if (!supabase || !showId) return
     const channel = supabase

@@ -27,8 +27,9 @@ block you? TheatreView lets you find out first.
 - **Pull the light cord.** A string hangs at the top right. Pull it down to make the room
   brighter. Pull again to change it. There is also a slider.
 - **Curved and flat screens.** Some theaters have a curved screen, so the app bends it too.
-- **Play any YouTube movie.** Paste a YouTube link in the "Now showing" box and it plays on the big
-  screen. You can also paste a direct `.mp4` or `.webm` link.
+- **Pick a movie.** Under "Now showing" you can pick from a list: Spider-Man: No Way Home and
+  Spider-Man: Brand New Day (trailers and scenes), plus free Blender movies. Or paste your own
+  YouTube link, or a direct `.mp4` or `.webm` link.
 
 ![Sitting in seat H23 at the TCL Chinese Theatre IMAX](docs/images/seat-view.jpg)
 
@@ -80,7 +81,8 @@ The app works without this. You only need it for holding and booking seats.
 | Drag (not sitting) | You walk around the room |
 | Scroll (not sitting) | You zoom in and out |
 | Pull the cord, or press L | The lights change: Movie, Dim, Bright, Full |
-| Paste a YouTube link and press Play | That video plays on the big screen |
+| Pick a movie under "Now showing" | That movie plays on the big screen |
+| Paste a YouTube link and press Play | Your own video plays on the big screen |
 | Pause / Sound on / Stop | Controls the movie (it starts muted) |
 | Pick a showtime (with booking on) | The seat map shows which seats are taken for that show |
 | Select | Holds the seat for you for 5 minutes (or just marks it, with booking off) |
@@ -191,7 +193,8 @@ sees it change right away, and nobody can ever get the same seat twice.
 What I am building:
 
 1. **A database** (Supabase) with four lists: theaters, showtimes, seat holds and bookings.
-2. **A showtime picker.** Each theater has a few showtimes. You pick one before you pick a seat.
+2. **A showtime picker.** Each theater has a few showtimes. You pick one before you pick a seat,
+   and that show's movie starts playing on the screen.
 3. **Hold a seat for 5 minutes.** Press Select and the seat is yours for 5 minutes. A timer counts
    down. If time runs out, the seat is free again.
 4. **Book it.** Press "Book seat" while your hold is still good, and the seat is booked for real.
@@ -374,7 +377,8 @@ A few small things came with this:
 - You cannot click on the YouTube player itself, so that dragging still moves the camera. The Pause,
   Sound on and Stop buttons talk to the player for you.
 - The video stays flat even on curved screens. The curves are small, so it is hard to notice.
-- The sample movie is *Big Buck Bunny*, a free movie made by the Blender Foundation.
+- The movie list lives in `src/movies.ts`. I checked every title with YouTube's own lookup service, so
+  the names match the real videos.
 - Some videos do not allow playing on other websites. Those will show an error inside the player.
 
 Direct `.mp4` or `.webm` links work a different way. They become a real 3D picture, so they glow and
@@ -452,6 +456,24 @@ while it was connecting.
 </details>
 
 <details>
+<summary><b>A movie list, and every showtime has its movie</b></summary>
+
+<br>
+
+Pasting a link is nice, but most people just want to press a button. So "Now showing" has a short
+list, grouped by movie: Spider-Man: No Way Home, Spider-Man: Brand New Day, and a few free Blender
+movies. The paste box is still there for anything else.
+
+Each showtime in the database also says which movie it plays. When you pick a showtime, that movie
+starts on the screen, so the booking part and the screen always match.
+
+The videos stay on YouTube and play in YouTube's own player. The app does not copy or store them.
+Some of the scene clips are uploaded by fan channels, so they could be taken down one day. If that
+happens, YouTube shows its own message on the screen and you can pick another one.
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
@@ -470,6 +492,7 @@ src/
   layout.ts           builds the room: rows, steps, seats, and the seat score
   store.ts            remembers the theater, the seat, the lights, and the movie
   movie.ts            reads YouTube and video links, and talks to the YouTube player
+  movies.ts           the movie list under "Now showing"
   App.tsx             puts the 3D room and the buttons on the page
   scene/
     Theater.tsx       the screen (flat or curved), the movie on it, floor, walls, row letters
