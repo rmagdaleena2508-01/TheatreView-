@@ -304,6 +304,10 @@ function YoutubePicture({
     // Fit a 16:9 picture inside the screen, like a real projector would.
     const fitWidth = Math.min(width, (height * YT_WIDTH) / YT_HEIGHT)
     const object = new CSS3DObject(el)
+    // CSS3DObject turns mouse events back on for its element. Switch them off again so
+    // the mouse never reaches the YouTube player (no hover overlay, no clicks); the
+    // movie is only controlled from the Now showing panel.
+    el.style.pointerEvents = 'none'
     object.position.set(center.x, center.y, center.z + 0.03)
     object.scale.setScalar(fitWidth / YT_WIDTH)
     layer.scene.add(object)
