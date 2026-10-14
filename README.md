@@ -4,6 +4,8 @@
 
 **Sit in a movie seat before you buy the ticket.**
 
+**▶ Try it live: [theatre-view.vercel.app](https://theatre-view.vercel.app)**
+
 Pick a seat in a 3D movie theater. The camera flies into that seat. You see the screen just like
 you would from there. Then you know if it is a good seat.
 
@@ -29,6 +31,10 @@ block you? TheatreView lets you find out first.
 - **Pull the light cord.** A string hangs at the top right. Pull it down to make the room
   brighter. Pull again to change it. There is also a slider.
 - **Curved and flat screens.** Some theaters have a curved screen, so the app bends it too.
+- **Lit like a real cinema.** Round lights in the ceiling with a faint glow under each one, warm lamps
+  on the walls, and small amber lights on every aisle step. They all dim together.
+- **Fits your screen.** The starting view moves as close as it can so the whole theater fills your
+  window, on a laptop or a phone.
 - **Pick a movie.** Under "Now showing" you can pick from a list: Spider-Man: No Way Home and
   Spider-Man: Brand New Day (trailers and scenes), plus free Blender movies. The Blender movies play
   in sharp 1080p straight on the 3D screen, with no YouTube buttons. Or paste your own
@@ -62,14 +68,20 @@ Other commands:
 
 The app works without this. You only need it for holding and booking seats.
 
+Booking is built but switched off on the live site for now. To turn it on:
+
 1. Make a free project at [supabase.com](https://supabase.com).
 2. In the project, open **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**.
-3. Open the **SQL Editor** and run these two files, in this order:
+3. Open the **SQL Editor** and run these files, in this order:
    - `supabase/migrations/20261014000000_phase4_booking.sql`
+   - `supabase/migrations/20261014010000_show_movies.sql`
    - `supabase/seed.sql`
 4. Copy `.env.example` to `.env.local` and fill in your project URL and publishable key
    (from **Project Settings → API Keys**).
-5. Run `npm run dev` again.
+5. In `src/config.ts`, change `BOOKING_ENABLED` to `true`.
+6. Run `npm run dev` again.
+7. For the live site, add the same two keys in **Vercel → Project → Settings → Environment Variables**
+   and deploy again.
 
 ## How to use it
 
@@ -88,9 +100,9 @@ The app works without this. You only need it for holding and booking seats.
 | Pick a movie under "Now showing" | That movie plays on the big screen |
 | Paste a YouTube link and press Play | Your own video plays on the big screen |
 | Pause / Sound on / Stop | Controls the movie (it starts muted) |
-| Pick a showtime (with booking on) | The seat map shows which seats are taken for that show |
-| Select | Holds the seat for you for 5 minutes (or just marks it, with booking off) |
-| Book seat | Books the seat you are holding |
+| Select | Marks the seat as yours (with booking on, it holds the seat for 5 minutes) |
+| Pick a showtime *(booking on only)* | The seat map shows which seats are taken for that show |
+| Book seat *(booking on only)* | Books the seat you are holding |
 
 ## How it works
 
@@ -104,7 +116,8 @@ Think of the app like a restaurant.
 | The fridge | **Database** | Stores everything so nothing gets lost |
 | Delivery trucks | **Outside services** | Movie posters, payments, AI help |
 
-The frontend is done. The backend is being built now, in Phase 4.
+The frontend is done and live. The backend is built and tested, but switched off on the live site until
+booking launches.
 
 ```
 You (browser)
@@ -113,7 +126,7 @@ You (browser)
 Frontend: the 3D theater  (React + three.js)
     |   "Is E6 free?"  "Book E6 for me"
     v
-API + Backend + Database  (Supabase, Phase 4: building now)
+API + Backend + Database  (Supabase, built, switched off for now)
     |
     v
 Outside services  (movie posters, payments, AI, coming in Phase 5)
@@ -125,13 +138,16 @@ Outside services  (movie posters, payments, AI, coming in Phase 5)
 |---|---|---|
 | Building the app | [Vite](https://vite.dev) + [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org) | Fast to start, and TypeScript catches mistakes early |
 | 3D | [three.js](https://threejs.org) + [React Three Fiber](https://r3f.docs.pmnd.rs) | The most used way to make 3D on the web, written the React way |
-| 3D helpers | [drei](https://github.com/pmndrs/drei) | Ready-made pieces: camera controls, text, lines |
-| Camera moves | [camera-controls](https://github.com/yomotsu/camera-controls) | Smooth fly-to moves that feel heavy, not jumpy |
+| 3D helpers | [drei](https://github.com/pmndrs/drei) | Ready-made pieces, like the dashed line from seat to screen |
+| Camera moves | [camera-controls](https://github.com/yomotsu/camera-controls) | Dragging and turning your head, plus my own curved flights in and out of seats |
+| YouTube on the 3D screen | three.js `CSS3DRenderer` | Places the real YouTube player on the screen, and only moves it when the camera moves |
+| Movie streams | [hls.js](https://github.com/video-dev/hls.js) | Plays HLS streams in sharp quality as a real 3D picture; loads only when you pick a stream |
 | Glow | [@react-three/postprocessing](https://github.com/pmndrs/react-postprocessing) | Makes the screen and lamps glow, and darkens the edges |
 | Smooth fades | [maath](https://github.com/pmndrs/maath) | Fades the lights in and out like a real theater |
 | Shared memory | [zustand](https://github.com/pmndrs/zustand) | One small place that remembers the seat, the theater and the lights |
-| Backend | [Supabase](https://supabase.com) (Postgres) | Database, live updates and sign-in in one place |
-| Hosting (later) | [Vercel](https://vercel.com) | Puts the app online every time I push code |
+| Font | [Inter](https://rsms.me/inter/) via [Fontsource](https://fontsource.org) | One font everywhere, shipped with the app instead of from a font website |
+| Backend | [Supabase](https://supabase.com) (Postgres, Realtime, Auth) | Database, safe booking steps, live seat updates and guest sign-in in one place |
+| Hosting | [Vercel](https://vercel.com) | Live now; puts the app online every time I push code |
 
 ## The phases
 
@@ -173,20 +189,25 @@ I am building TheatreView in **6 phases**. Click a phase to see the details.
 </details>
 
 <details>
-<summary><b>Phase 3: Make it feel real</b> 🔜 Next</summary>
+<summary><b>Phase 3: Make it feel real</b> 🚧 Mostly done</summary>
 
 <br>
 
-- ✅ Play a real movie on the screen: paste a YouTube link, or a direct video file link.
+- ✅ Play a real movie on the screen: a movie list (Spider-Man trailers and scenes, free Blender
+  films), your own YouTube link, or a stream link.
+- ✅ Sharp 1080p streams painted straight onto the 3D screen, with no YouTube buttons.
+- ✅ Better chair model: padded seat, leaning backrest, armrests, rounded edges.
+- ✅ Lit like a real cinema: ceiling downlights, wall sconces, aisle step lights.
+- ✅ The starting view fits your screen, and a loading screen shows until the room is ready.
+- ✅ Smooth, curved camera flights in and out of seats.
 - The screen's light changes color with the movie.
 - Sound that comes from the screen, so it is quieter in the back rows.
-- ✅ Better chair model: padded seat, leaning backrest, armrests, rounded edges.
 - Touch controls for phones, a full-screen button, and a calm mode for people who do not like motion.
 
 </details>
 
 <details>
-<summary><b>Phase 4: Backend and API</b> 🚧 Building now</summary>
+<summary><b>Phase 4: Backend and API</b> ✅ Built, switched off for now</summary>
 
 <br>
 
@@ -194,7 +215,7 @@ I am building TheatreView in **6 phases**. Click a phase to see the details.
 Many people can open the same show at the same time. When one person picks a seat, everyone else
 sees it change right away, and nobody can ever get the same seat twice.
 
-What I am building:
+What is built:
 
 1. **A database** (Supabase) with four lists: theaters, showtimes, seat holds and bookings.
 2. **A showtime picker.** Each theater has a few showtimes. You pick one before you pick a seat,
@@ -208,12 +229,12 @@ What I am building:
 6. **No sign-up needed.** You get a quiet guest account the first time you hold a seat.
 7. **Safe by design.** The browser can only ask the database to do things. The database checks
    every request, so a seat can never be booked twice, even if two people click at the same time.
-8. **Still works without a backend.** If you run the app without Supabase keys, you can still
-   preview every seat. Only booking turns off.
+8. **Ready for many people.** Browsers spread out their database requests and try again if it is busy.
+9. **Still works without a backend.** Without booking, you can still preview every seat.
 
-What is done so far: the database plan, the safe hold and book steps, the showtime picker, the timer
-and the live seat colors. What is left: connect it to a real Supabase project and test it with two
-browsers at once.
+Status: the database is live and the safe hold and book steps were tested with two pretend people at
+once. Booking is switched off on the live site (`BOOKING_ENABLED` in `src/config.ts`) until guest
+sign-in is turned on in Supabase and the keys are added to Vercel.
 
 </details>
 
@@ -230,13 +251,15 @@ browsers at once.
 </details>
 
 <details>
-<summary><b>Phase 6: Put it online</b> ⏳ Planned</summary>
+<summary><b>Phase 6: Put it online</b> 🚧 Mostly done</summary>
 
 <br>
 
-- Put the app on Vercel so anyone can use it.
-- Make it load faster: split the 3D code and shrink the pictures.
-- Goal: smooth on a normal laptop, ready to use in under 3 seconds.
+- ✅ Live on Vercel: [theatre-view.vercel.app](https://theatre-view.vercel.app).
+- ✅ Faster loading: Lighthouse phone score went from 39 to between 52 and 78.
+- ✅ Built files are cached for a year; a daily job keeps the database awake.
+- ✅ Tested with 100 people at once.
+- Split the big 3D code into smaller pieces.
 - Count which seats people look at and which seats they buy.
 - Make a demo video.
 
@@ -279,15 +302,17 @@ and about 23 degrees up or down, like a real person in a chair.
 </details>
 
 <details>
-<summary><b>The camera flies in two steps</b></summary>
+<summary><b>How the camera flies into a seat</b></summary>
 
 <br>
 
-First the camera flies to the seat while looking at the screen. Then it quietly switches to
-"head turning" mode. If it did both at once, the flight looked twisty and strange.
+The camera follows a smooth curve: it comes down onto the seat from above, looking at the screen
+the whole way. When it lands, it quietly switches to "head turning" mode, so dragging turns your head
+instead of swinging around the room. Leaving a seat is the same curve in reverse: up out of the row
+first, then back.
 
 Once you are sitting, moving to the next seat with the arrow keys is different: the camera just
-slides straight across, still looking at the screen. That takes about a quarter of a second, so
+slides straight across, still looking at the screen. That takes about a third of a second, so
 hopping from seat to seat feels quick, like leaning over to the next chair.
 
 </details>
@@ -521,12 +546,12 @@ What I changed:
 - **Load things later.** The YouTube player waits until the room is ready. The booking code loads only
   when it is needed.
 - **No extra downloads from other sites.** The row letters used to download a font from another
-  website. Now they are drawn with the computer's own font.
+  website. Now they are drawn with the app's own font (Inter, shipped with the app).
 - **Remember files.** Built files have a fingerprint in their name, so browsers can keep them for a
   year and not download them again.
-- **Bigger YouTube player.** YouTube picks the picture quality from how big its player is. The player
-  is now 1080p-sized, so YouTube can choose 1080p when the internet is fast enough. (YouTube no longer
-  lets websites force a quality.)
+- **YouTube quality.** YouTube picks the picture quality from how big its player is and how fast the
+  internet is. Websites cannot force a quality anymore. I tried a bigger player, but it made camera
+  moves feel heavy, so it is back to 1280×720, which still allows HD on sharp laptop screens.
 
 After these changes the score went up to between 52 and 78 (it changes from run to run), and the busy
 time dropped from about 17 seconds to between 0.2 and 4 seconds.
@@ -678,7 +703,7 @@ I measured what happened between your click and the camera moving. Three things 
 3. **A slow, floaty ease.** The flight now settles faster.
 
 Now the click is noticed in under 20 milliseconds, the camera starts moving right away, and it reaches
-the seat in about a second with no stalls.
+the seat in about 0.7 seconds with no stalls.
 
 </details>
 
@@ -757,6 +782,8 @@ src/
   movies.ts           the movie list under "Now showing" (YouTube links and HLS streams)
   App.tsx             puts the 3D room, the buttons and the loading screen on the page
   config.ts           switches for features that are built but not live yet
+  fonts.ts            loads the Inter font for the whole app
+  hls-light.d.ts      type notes for the small version of the stream player
   scene/
     Theater.tsx       the screen (flat or curved), the movie on it, floor, walls, row letters
     Seats.tsx         all the seats, mouse-over and click
@@ -775,14 +802,47 @@ supabase/
   seed.sql            demo theaters and showtimes
 docs/
   CINEMA_RESEARCH.md  real theater facts, design rules, and links
+  images/             screenshots and the link preview picture
+public/
+  og-image.png        the picture shown when someone shares the link
+.github/workflows/
+  keep-warm.yml       daily job that keeps the free database awake
+vercel.json           tells Vercel to cache built files for a year
+.env.example          the two Supabase keys to fill in for booking
 PLAN.md               the full product plan
 ```
 
+## Putting it online
+
+The app is only files, so there is no server to run or wake up.
+
+- **Hosting:** [Vercel](https://vercel.com) builds the app with `npm run build` every time code is pushed
+  to `main`, and serves the files from computers close to each visitor.
+- **Caching:** `vercel.json` tells browsers they may keep the built files for a year. Each file has a
+  fingerprint in its name, so a new version always gets a new name.
+- **Environment variables** (only needed for booking):
+
+  | Name | What it is |
+  |---|---|
+  | `VITE_SUPABASE_URL` | Your Supabase project address |
+  | `VITE_SUPABASE_PUBLISHABLE_KEY` | Your Supabase publishable key (safe to show in the browser) |
+
+- **Database:** Supabase, in Mumbai. The free plan sleeps after a week with no visitors, so
+  `.github/workflows/keep-warm.yml` pings it once a day. (GitHub stops scheduled jobs after 60 days with
+  no activity in the repo.)
+
 ## Known problems
 
-- The 3D code is still one big file (about 470 KB zipped). The booking code is already split out.
+- The 3D code is still one big file (about 470 KB zipped). The booking and stream player code are
+  already split out.
 - YouTube shows its own little buttons and title at the start of a video. The rules for using
   YouTube's player say websites must not cover them up.
+- YouTube picks the picture quality by itself. Websites cannot force 1080p.
+- The free Blender films stream from public test servers (Mux and Unified Streaming). They can be slow
+  or go away. A real launch should use a paid video host.
+- Booking is switched off on the live site for now.
+- Supabase's free plan allows 200 live connections and 100 live messages a second. Busy ticket sales
+  with booking on would need the Pro plan.
 
 ## Help make it better
 
@@ -795,6 +855,20 @@ Ideas and fixes are welcome.
 
 If you find a bug, please open an issue and tell me what you clicked and what you saw.
 
+## Credits and licenses
+
+- **Big Buck Bunny, Sintel and Tears of Steel** © Blender Foundation |
+  [www.blender.org](https://www.blender.org), shared under
+  [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). The streams are
+  provided by [Mux](https://www.mux.com) and [Unified Streaming](https://www.unified-streaming.com) test servers.
+- **Spider-Man: No Way Home** and **Spider-Man: Brand New Day** trailers and clips belong to Sony
+  Pictures and Marvel. They are not copied or stored here; they play from YouTube in YouTube's own
+  player, from the channels named in `src/movies.ts`.
+- **Inter** font by Rasmus Andersson, under the
+  [SIL Open Font License](https://github.com/rsms/inter/blob/master/LICENSE.txt).
+- Cinema screen sizes and design rules come from the sources listed in
+  [docs/CINEMA_RESEARCH.md](docs/CINEMA_RESEARCH.md).
+
 ## Thank you
 
 - The LinkedIn post that gave me this idea.
@@ -805,4 +879,5 @@ If you find a bug, please open an issue and tell me what you clicked and what yo
 
 ## License
 
-[MIT](LICENSE). You can use it, change it and share it. Just keep the license file.
+[MIT](LICENSE) for the code. You can use it, change it and share it. Just keep the license file.
+The movies and the font keep their own licenses (see Credits and licenses).
