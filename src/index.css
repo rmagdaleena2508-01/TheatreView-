@@ -369,3 +369,34 @@ body,
   margin: 6px 0 0;
   color: #ff9a8b;
 }
+
+/* Booking */
+.venue > select[aria-label='Choose a showtime'] {
+  font-size: 12px;
+  font-weight: 500;
+}
+.dot.taken { background: #16171b; border: 1px solid #555; }
+.seatbar .status {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.seatbar .status.mine { color: #3ddc84; font-weight: 600; }
+.seatbar .status.held { color: var(--gold); }
+.countdown {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.booking-message {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 10;
+}

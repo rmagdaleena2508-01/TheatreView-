@@ -4,6 +4,9 @@ import { lightPresetName, useTheater } from '../store'
 const LENGTH = 70 // resting cord length in px
 const MAX_PULL = 90 // how far the knob can be pulled down
 const TRIGGER = 32 // pull past this and let go to switch the lights
+const ANCHOR_TOP = 6 // px from the top of the mount to where the cord starts
+const KNOB_CENTER = LENGTH + 15 // resting distance from the anchor to the knob's center
+const MAX_SWING = 1.1 // radians the cord can swing to either side
 const STIFFNESS = 260 // spring that pulls the cord back up
 const DAMPING = 11
 const SWAY_STIFFNESS = 60 // softer spring for the side-to-side swing
@@ -19,7 +22,20 @@ export function LightCord() {
   const swing = useRef<HTMLDivElement>(null!)
   const string = useRef<HTMLDivElement>(null!)
   const knob = useRef<HTMLButtonElement>(null!)
-  const sim = useRef({ y: 0, vy: 0, angle: 0, va: 0, dragging: false, startX: 0, startY: 0, moved: false })
+  const root = useRef<HTMLDivElement>(null!)
+  const sim = useRef({
+    y: 0,
+    vy: 0,
+    angle: 0,
+    va: 0,
+    dragging: false,
+    moved: false,
+    anchorX: 0, // where the cord hangs from, in page pixels
+    anchorY: 0,
+    grabX: 0, // where on the knob you grabbed it, so it doesn't jump to the cursor
+    grabY: 0,
+    lastT: 0,
+  })
   const raf = useRef(0)
 
   const draw = () => {
@@ -75,19 +91,43 @@ export function LightCord() {
 
   const onPointerDown = (e: React.PointerEvent) => {
     knob.current.setPointerCapture(e.pointerId)
-    Object.assign(sim.current, { dragging: true, startX: e.clientX, startY: e.clientY, moved: false, vy: 0, va: 0 })
+    const s = sim.current
+    const rootRect = root.current.getBoundingClientRect()
+    const knobRect = knob.current.getBoundingClientRect()
+    Object.assign(s, {
+      dragging: true,
+      moved: false,
+      vy: 0,
+      va: 0,
+      anchorX: rootRect.left + rootRect.width / 2,
+      anchorY: rootRect.top + ANCHOR_TOP,
+      grabX: e.clientX - (knobRect.left + knobRect.width / 2),
+      grabY: e.clientY - (knobRect.top + knobRect.height / 2),
+      lastT: performance.now(),
+    })
     animate()
   }
 
+  // The knob follows the cursor 1:1: the cord points from where it hangs to
+  // where your hand is, and stretches to reach it.
   const onPointerMove = (e: React.PointerEvent) => {
     const s = sim.current
     if (!s.dragging) return
-    const dy = e.clientY - s.startY
-    const dx = e.clientX - s.startX
-    if (Math.abs(dy) > 3 || Math.abs(dx) > 3) s.moved = true
-    // Rubber-band: the cord gets stiffer the further you pull.
-    s.y = dy <= 0 ? dy * 0.15 : MAX_PULL * (1 - Math.exp(-dy / MAX_PULL))
-    s.angle = Math.max(-0.5, Math.min(0.5, Math.atan2(dx, LENGTH + s.y)))
+    const x = e.clientX - s.grabX - s.anchorX
+    const y = e.clientY - s.grabY - s.anchorY
+    const pull = Math.hypot(x, y) - KNOB_CENTER
+    if (Math.abs(pull) > 3 || Math.abs(x) > 3) s.moved = true
+
+    const now = performance.now()
+    const dt = Math.max(0.001, (now - s.lastT) / 1000)
+    // CSS rotate() turns clockwise, so a hand to the right needs a negative angle.
+    const angle = Math.max(-MAX_SWING, Math.min(MAX_SWING, -Math.atan2(x, y)))
+    const length = pull < 0 ? Math.max(pull, -12) : pull < MAX_PULL ? pull : MAX_PULL + (pull - MAX_PULL) * 0.2
+    s.va = Math.max(-8, Math.min(8, (angle - s.angle) / dt)) // keep the swing going when you let go
+    s.vy = Math.max(-1500, Math.min(1500, (length - s.y) / dt))
+    s.angle = angle
+    s.y = length
+    s.lastT = now
   }
 
   const onPointerUp = () => {
@@ -105,7 +145,7 @@ export function LightCord() {
   const name = lightPresetName(lightLevel)
 
   return (
-    <div className="cord">
+    <div className="cord" ref={root}>
       <div className="cord-mount" />
       <div className="cord-swing" ref={swing}>
         <div className="cord-string" ref={string} style={{ height: LENGTH }} />

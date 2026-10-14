@@ -8,9 +8,11 @@ import { Lighting } from './scene/Lighting'
 import { Hud } from './ui/Hud'
 import { LightCord } from './ui/LightCord'
 import { useTheater } from './store'
+import { useBookingSync } from './backend/booking'
 
 export default function App() {
   const venueId = useTheater((s) => s.theater.venue.id)
+  useBookingSync()
   const start = useTheater.getState().theater.overview.position
   return (
     <div className="app">

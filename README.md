@@ -54,6 +54,19 @@ Other commands:
 | `npm run preview` | Opens the online-ready version so you can check it |
 | `npm run lint` | Looks for small mistakes in the code |
 
+### Turn on booking (optional)
+
+The app works without this. You only need it for holding and booking seats.
+
+1. Make a free project at [supabase.com](https://supabase.com).
+2. In the project, open **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**.
+3. Open the **SQL Editor** and run these two files, in this order:
+   - `supabase/migrations/20261014000000_phase4_booking.sql`
+   - `supabase/seed.sql`
+4. Copy `.env.example` to `.env.local` and fill in your project URL and publishable key
+   (from **Project Settings → API Keys**).
+5. Run `npm run dev` again.
+
 ## How to use it
 
 | Do this | What happens |
@@ -69,7 +82,9 @@ Other commands:
 | Pull the cord, or press L | The lights change: Movie, Dim, Bright, Full |
 | Paste a YouTube link and press Play | That video plays on the big screen |
 | Pause / Sound on / Stop | Controls the movie (it starts muted) |
-| Select | You pick that seat |
+| Pick a showtime (with booking on) | The seat map shows which seats are taken for that show |
+| Select | Holds the seat for you for 5 minutes (or just marks it, with booking off) |
+| Book seat | Books the seat you are holding |
 
 ## How it works
 
@@ -83,7 +98,7 @@ Think of the app like a restaurant.
 | The fridge | **Database** | Stores everything so nothing gets lost |
 | Delivery trucks | **Outside services** | Movie posters, payments, AI help |
 
-Right now only the frontend is built. The backend comes in Phase 4.
+The frontend is done. The backend is being built now, in Phase 4.
 
 ```
 You (browser)
@@ -92,7 +107,7 @@ You (browser)
 Frontend: the 3D theater  (React + three.js)
     |   "Is E6 free?"  "Book E6 for me"
     v
-API + Backend + Database  (Supabase, coming in Phase 4)
+API + Backend + Database  (Supabase, Phase 4: building now)
     |
     v
 Outside services  (movie posters, payments, AI, coming in Phase 5)
@@ -109,7 +124,7 @@ Outside services  (movie posters, payments, AI, coming in Phase 5)
 | Glow | [@react-three/postprocessing](https://github.com/pmndrs/react-postprocessing) | Makes the screen and lamps glow, and darkens the edges |
 | Smooth fades | [maath](https://github.com/pmndrs/maath) | Fades the lights in and out like a real theater |
 | Shared memory | [zustand](https://github.com/pmndrs/zustand) | One small place that remembers the seat, the theater and the lights |
-| Backend (later) | [Supabase](https://supabase.com) | Database, live updates and sign-in in one place |
+| Backend | [Supabase](https://supabase.com) (Postgres) | Database, live updates and sign-in in one place |
 | Hosting (later) | [Vercel](https://vercel.com) | Puts the app online every time I push code |
 
 ## The phases
@@ -165,15 +180,33 @@ I am building TheatreView in **6 phases**. Click a phase to see the details.
 </details>
 
 <details>
-<summary><b>Phase 4: Backend and API</b> ⏳ Planned</summary>
+<summary><b>Phase 4: Backend and API</b> 🚧 Building now</summary>
 
 <br>
 
-- Store theaters, shows, seats and bookings in a Supabase database.
-- Seats someone already bought turn grey.
-- When you press Select, the seat is held for you for 5 minutes, so nobody else can take it.
-- When someone books a seat, it turns grey on everyone's screen right away, with no refresh.
-- Sign in with a link sent to your email.
+**The short brief:** Phase 4 turns TheatreView from "look at a seat" into "really get a seat".
+Many people can open the same show at the same time. When one person picks a seat, everyone else
+sees it change right away, and nobody can ever get the same seat twice.
+
+What I am building:
+
+1. **A database** (Supabase) with four lists: theaters, showtimes, seat holds and bookings.
+2. **A showtime picker.** Each theater has a few showtimes. You pick one before you pick a seat.
+3. **Hold a seat for 5 minutes.** Press Select and the seat is yours for 5 minutes. A timer counts
+   down. If time runs out, the seat is free again.
+4. **Book it.** Press "Book seat" while your hold is still good, and the seat is booked for real.
+   (Payment comes in Phase 5.)
+5. **Live seat map.** Booked seats turn dark. Seats someone else is holding turn brown. It all
+   changes on your screen without a refresh.
+6. **No sign-up needed.** You get a quiet guest account the first time you hold a seat.
+7. **Safe by design.** The browser can only ask the database to do things. The database checks
+   every request, so a seat can never be booked twice, even if two people click at the same time.
+8. **Still works without a backend.** If you run the app without Supabase keys, you can still
+   preview every seat. Only booking turns off.
+
+What is done so far: the database plan, the safe hold and book steps, the showtime picker, the timer
+and the live seat colors. What is left: connect it to a real Supabase project and test it with two
+browsers at once.
 
 </details>
 
@@ -350,6 +383,75 @@ bend with curved screens. The website that hosts the file has to allow it (this 
 </details>
 
 <details>
+<summary><b>The light cord follows your hand</b></summary>
+
+<br>
+
+At first, the cord swung the wrong way. If you pulled left, it went right. That is because the
+screen turns things clockwise for a positive angle, and I forgot to flip it. Now the knob stays
+exactly under your mouse while you hold it, and the cord points from where it hangs to your hand.
+When you let go, it keeps its swing and springs back, like a real string.
+
+</details>
+
+<details>
+<summary><b>The database does not store where seats are</b></summary>
+
+<br>
+
+The app already builds every theater the same way every time from the theater's numbers. So seat
+"H12" in the multiplex is always in the same spot. The database only needs to know "show 5, seat H12
+is booked". This keeps the database small and means I never have two copies of the seat map that
+could disagree.
+
+</details>
+
+<details>
+<summary><b>Holds run out by themselves</b></summary>
+
+<br>
+
+Each hold has an "until" time. The database only counts a hold if that time has not passed yet. So
+nothing has to wake up and delete old holds on time. A seat is free the very second its hold runs out.
+
+</details>
+
+<details>
+<summary><b>Two people can never get the same seat</b></summary>
+
+<br>
+
+The browser is not allowed to change the seat lists directly. It can only ask the database to "hold
+this seat" or "book this seat". The database does the check and the change in one single step, so
+there is no gap where two people can sneak in. On top of that, the bookings list has a rule that one
+seat in one show can only be booked once.
+
+</details>
+
+<details>
+<summary><b>Guest accounts instead of sign-up</b></summary>
+
+<br>
+
+Asking for an email before you can even try a seat felt like too much. So the app makes a quiet guest
+account the first time you hold a seat. That way every hold still belongs to someone. Email sign-in
+can come later, when you actually pay.
+
+</details>
+
+<details>
+<summary><b>Live updates say "something changed", not "who did it"</b></summary>
+
+<br>
+
+When a hold or booking changes, the database sends a tiny message: "seat H12 changed". Every open
+browser then asks for the latest seat map. The message never says who took the seat, so nobody's
+info leaks. The app also asks for the seat map right after it connects, in case a change slipped by
+while it was connecting.
+
+</details>
+
+<details>
 <summary><b>Some things are left out on purpose</b></summary>
 
 <br>
@@ -378,6 +480,12 @@ src/
   ui/
     Hud.tsx           the theater box, the seat bar, and shortcut keys
     LightCord.tsx     the pull cord and light slider
+  backend/
+    supabase.ts       connects to Supabase (only if keys are set)
+    booking.ts        showtimes, holds, bookings, and live updates
+supabase/
+  migrations/         the database tables, safety rules, and functions
+  seed.sql            demo theaters and showtimes
 docs/
   CINEMA_RESEARCH.md  real theater facts, design rules, and links
 PLAN.md               the full product plan

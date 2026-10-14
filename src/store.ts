@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { buildTheater, type Seat, type TheaterLayout } from './layout'
 import { DEFAULT_VENUE, VENUES } from './venues'
 import { SAMPLE_MOVIE_URL, parseMovieUrl, type Movie } from './movie'
+import type { SeatState, Show } from './backend/booking'
 
 type Mode = 'overview' | 'pov'
 
@@ -30,6 +31,13 @@ type TheaterState = {
   moviePlaying: boolean
   movieMuted: boolean
   movieError: string | null
+  // Booking (Phase 4). Empty when the app runs without Supabase keys.
+  shows: Show[]
+  showId: string | null
+  seatStates: Record<string, SeatState> // keyed by seat id; free seats are missing
+  bookingBusy: boolean
+  bookingMessage: string | null
+  setShow: (id: string) => void
   setVenue: (id: string) => void
   setHovered: (seat: Seat | null) => void
   focus: (seat: Seat | null) => void
@@ -57,9 +65,25 @@ export const useTheater = create<TheaterState>((set, get) => ({
   moviePlaying: true,
   movieMuted: true,
   movieError: null,
+  shows: [],
+  showId: null,
+  seatStates: {},
+  bookingBusy: false,
+  bookingMessage: null,
+  setShow: (showId) => set({ showId, seatStates: {}, bookingMessage: null }),
   setVenue: (id) => {
     const venue = VENUES.find((v) => v.id === id) ?? DEFAULT_VENUE
-    set({ theater: buildTheater(venue), hovered: null, focused: null, selected: null, mode: 'overview' })
+    set({
+      theater: buildTheater(venue),
+      hovered: null,
+      focused: null,
+      selected: null,
+      mode: 'overview',
+      shows: [],
+      showId: null,
+      seatStates: {},
+      bookingMessage: null,
+    })
   },
   setHovered: (hovered) => set({ hovered }),
   focus: (focused) => set({ focused }),

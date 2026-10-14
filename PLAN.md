@@ -101,6 +101,24 @@ Each phase ends with something you can open in a browser and show someone.
 - Better seat model made in Blender, loaded as `.glb`, converted with `gltfjsx`.
 - Mobile touch controls, fullscreen button, `prefers-reduced-motion` support.
 
+Research-backed upgrades for the 3D (added 2026-10-14):
+- Seats: real cinema armchair model from Blender, exported as Draco-compressed .glb, still one
+  InstancedMesh; one shared baked ambient-occlusion lightmap for every seat (uv1 + `lightMap`).
+- Faster picking with drei `<Bvh>` (three-mesh-bvh) once the big IMAX rooms get detailed seats.
+- Grounding: drei `ContactShadows` under the seat rows; `Environment` with `Lightformer`s for soft
+  reflections instead of more real-time lights.
+- Movement: optional walk mode with `PointerLockControls` + damped velocity in `useFrame`
+  (pointer lock needs HTTPS and a click). Keep the current head-turn mode as the default.
+- Hover cursor with drei `useCursor`; `r3f-perf` while tuning.
+
+Differentiators (none of the similar demos do these):
+- **"Who's in front of me?"** Fill the room with a crowd of instanced silhouettes of real-world
+  heights. Enter your own seated height and see if a tall person in front blocks your view; the
+  head-clearance number updates. Turns the C-value math into something you can see.
+- **Best-seat heatmap.** One toggle colors every seat by its view score, so the sweet spot is
+  obvious before you click anything.
+- **Compare two seats side by side** (split view, two cameras).
+
 ### Phase 4: Backend + API (Supabase)
 - Tables: `movies`, `auditoriums` (seat layout as JSON), `shows`, `bookings`, `seat_holds`.
 - Seats come from the database instead of being hard-coded in `layout.ts`.
@@ -108,7 +126,9 @@ Each phase ends with something you can open in a browser and show someone.
 - Seat hold: clicking Select holds the seat for 5 minutes so two people cannot buy the same one
   (unique constraint on `show_id + seat_id` plus an expiry time).
 - Realtime: subscribe to `bookings` and `seat_holds` so other people's picks show up live.
-- Sign in with email magic link (Supabase Auth).
+- Guest (anonymous) sign-in on first hold; email magic link later, at payment time.
+- Holds and bookings change only through Postgres functions (`hold_seat`, `book_seat`,
+  `release_hold`, `get_seat_states`); a database trigger broadcasts `seat_changed` per show.
 
 ### Phase 5: Outside APIs
 - TMDB: movie list page with posters, pick a showtime, then enter the 3D room.

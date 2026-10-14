@@ -7,7 +7,10 @@ import { useTheater } from '../store'
 const BASE = new Color('#3b3e48')
 const HOVER = new Color('#5fd4ff')
 const FOCUS = new Color('#2f7bff')
-const SELECTED = new Color('#ffb547')
+const SELECTED = new Color('#ffb547') // your seat (held or picked)
+const BOOKED_MINE = new Color('#3ddc84')
+const TAKEN = new Color('#16171b') // booked by someone else
+const HELD_OTHER = new Color('#5a3f1c') // someone else is deciding
 
 // One cinema seat built from a few boxes, merged so it is a single geometry.
 // Recliner venues have deeper rows, so the seat gets deeper too.
@@ -31,6 +34,7 @@ export function Seats() {
   const focused = useTheater((s) => s.focused)
   const selected = useTheater((s) => s.selected)
   const mode = useTheater((s) => s.mode)
+  const seatStates = useTheater((s) => s.seatStates)
   const setHovered = useTheater((s) => s.setHovered)
   const sit = useTheater((s) => s.sit)
 
@@ -49,14 +53,17 @@ export function Seats() {
   // Recolor only when the hovered / focused / selected seat changes.
   useLayoutEffect(() => {
     for (const seat of seats) {
+      const booking = seatStates[seat.id]
       let color = BASE
-      if (seat === selected) color = SELECTED
-      else if (seat === focused) color = FOCUS
-      else if (seat === hovered) color = HOVER
+      if (booking?.state === 'booked') color = booking.mine ? BOOKED_MINE : TAKEN
+      else if (booking?.state === 'held') color = booking.mine ? SELECTED : HELD_OTHER
+      if (seat === focused && !booking?.mine) color = FOCUS
+      else if (seat === hovered && !booking) color = HOVER
+      else if (seat === selected && !booking) color = SELECTED
       mesh.current.setColorAt(seat.index, color)
     }
     mesh.current.instanceColor!.needsUpdate = true
-  }, [seats, hovered, focused, selected])
+  }, [seats, hovered, focused, selected, seatStates])
 
   const onMove = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
