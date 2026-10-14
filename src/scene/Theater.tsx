@@ -117,10 +117,11 @@ function FilePicture({ geometry, url }: { geometry: BufferGeometry; url: string 
   )
 }
 
-// YouTube picks the stream quality from the player's size on the page. A 1080p-sized
-// player lets it choose 1080p when the connection allows it.
-const YT_WIDTH = 1920
-const YT_HEIGHT = 1080
+// YouTube picks the stream quality from the player's layout size times the screen's
+// pixel density, so 1280x720 already allows 1080p+ on retina laptops. A bigger player
+// made every camera move repaint a much larger layer and felt sluggish.
+const YT_WIDTH = 1280
+const YT_HEIGHT = 720
 const HTML_PX = 0.025 // drei <Html transform> draws 1 CSS pixel as 0.025 world units
 
 // YouTube does not let other sites read its video pixels, so it can't be a texture.

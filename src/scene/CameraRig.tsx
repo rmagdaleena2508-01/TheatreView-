@@ -11,6 +11,8 @@ const { ACTION } = CameraControlsImpl
 
 const HEAD_TURN = 0.75 // radians you can look left/right from a seat
 const HEAD_TILT = 0.4 // radians you can look up/down from a seat
+const FLY_IN_TIME = 0.5 // seconds-ish for the big flights (into a seat, back out)
+const SEAT_HOP_TIME = 0.22 // quick slide when moving from one seat to the next
 function panelCover(width: number) {
   const panel = document.querySelector('.venue')
   if (!panel || width < 700) return 0
@@ -19,6 +21,7 @@ function panelCover(width: number) {
 
 export function CameraRig() {
   const controls = useRef<CameraControlsImpl>(null!)
+  const seated = useRef(false) // true once the camera is sitting in a seat
   const mode = useTheater((s) => s.mode)
   const focused = useTheater((s) => s.focused)
   const theater = useTheater((s) => s.theater)
@@ -28,6 +31,11 @@ export function CameraRig() {
   // Re-frame the overview when the window or the panel changes, but never move
   // the camera while you are sitting in a seat.
   const frameKey = mode === 'overview' ? `${size.width}x${size.height}:${panelOpen}` : 'seat'
+
+  // Handy for debugging and timing camera moves from the browser console.
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as unknown as { __controls: CameraControlsImpl }).__controls = controls.current
+  }, [])
 
   useEffect(() => {
     const c = controls.current
@@ -46,17 +54,27 @@ export function CameraRig() {
       if (!focused) return
       const eye = eyePosition(focused)
       const look = theater.screen.center
+      const dir = look.clone().sub(eye).normalize().multiplyScalar(0.01)
       unlock()
       c.mouseButtons.wheel = ACTION.NONE
       c.mouseButtons.right = ACTION.NONE
       c.touches.two = ACTION.NONE
-      // 1) Fly into the seat while looking at the screen.
-      await c.setLookAt(eye.x, eye.y, eye.z, look.x, look.y, look.z, true)
+      if (seated.current) {
+        // Already sitting: glide straight across to the next seat, eyes on the screen.
+        // Camera and its look-at point move together, so it's a quick slide, not a swoop.
+        c.smoothTime = SEAT_HOP_TIME
+        await c.setLookAt(eye.x, eye.y, eye.z, eye.x + dir.x, eye.y + dir.y, eye.z + dir.z, true)
+      } else {
+        // 1) Fly into the seat while looking at the screen.
+        c.smoothTime = FLY_IN_TIME
+        await c.setLookAt(eye.x, eye.y, eye.z, look.x, look.y, look.z, true)
+        if (cancelled) return
+        // 2) Swap the orbit target to a point just in front of the eyes, so
+        //    dragging rotates the head in place instead of orbiting the screen.
+        c.setLookAt(eye.x, eye.y, eye.z, eye.x + dir.x, eye.y + dir.y, eye.z + dir.z, false)
+      }
       if (cancelled) return
-      // 2) Swap the orbit target to a point just in front of the eyes, so
-      //    dragging rotates the head in place instead of orbiting the screen.
-      const dir = look.clone().sub(eye).normalize().multiplyScalar(0.01)
-      c.setLookAt(eye.x, eye.y, eye.z, eye.x + dir.x, eye.y + dir.y, eye.z + dir.z, false)
+      seated.current = true
       c.minAzimuthAngle = c.azimuthAngle - HEAD_TURN
       c.maxAzimuthAngle = c.azimuthAngle + HEAD_TURN
       c.minPolarAngle = c.polarAngle - HEAD_TILT
@@ -64,6 +82,8 @@ export function CameraRig() {
     }
 
     async function goToOverview() {
+      seated.current = false
+      c.smoothTime = FLY_IN_TIME
       unlock()
       c.mouseButtons.wheel = ACTION.DOLLY
       c.mouseButtons.right = ACTION.TRUCK
@@ -87,5 +107,5 @@ export function CameraRig() {
     }
   }, [mode, focused, theater, frameKey])
 
-  return <CameraControls ref={controls} makeDefault smoothTime={0.55} draggingSmoothTime={0.15} />
+  return <CameraControls ref={controls} makeDefault smoothTime={FLY_IN_TIME} draggingSmoothTime={0.15} />
 }

@@ -7,6 +7,9 @@ const OVERVIEW_MARGIN = 1.04 // a little breathing room around the room
 // every seat fit in view. It measures the real window shape, so a wide laptop and a
 // tall phone both get a filled frame instead of one fixed, far-away camera.
 // `coveredLeft` is how many pixels of the left side are hidden behind the info panel.
+// The camera always stays on the room's centre line, looking straight at the screen,
+// so the room never looks turned. When the panel is open, the room is simply framed a
+// little smaller so it stays clear of the panel on both sides.
 // Camera angle measured down from straight up. Wide windows get a flatter, more
 // "standing at the back" view that spreads the room sideways; tall phone screens get
 // a steeper, bird's-eye view that stacks the rows up the screen.
@@ -40,7 +43,7 @@ export function frameOverview(theater: TheaterLayout, fov: number, width: number
   for (const p of points) target.add(p)
   target.multiplyScalar(1 / points.length)
 
-  const usableWidth = Math.max(200, width - coveredLeft)
+  const usableWidth = Math.max(240, width - 2 * coveredLeft)
   const tilt = overviewTilt(usableWidth / height)
   const toCamera = new Vector3(0, Math.cos(tilt), Math.sin(tilt))
   const forward = toCamera.clone().negate()
@@ -88,24 +91,6 @@ export function frameOverview(theater: TheaterLayout, fov: number, width: number
   }
   distance *= OVERVIEW_MARGIN
 
-  // Slide the view left so the room is centred in the part of the window you can see.
-  // Near and far things slide by different amounts on screen, so check the result and
-  // back the camera off a little until nothing hides behind the panel or the edges.
-  const fullTanH = tanV * (width / height)
-  const leftEdge = -1 + (2 * coveredLeft) / width
-  const centre = target.clone()
-  for (let i = 0; i < 12; i++) {
-    target.copy(centre).addScaledVector(right, -(coveredLeft / width) * distance * fullTanH)
-    const eye = target.clone().addScaledVector(toCamera, distance)
-    const fits = points.every((p) => {
-      const v = p.clone().sub(eye)
-      const depth = v.dot(forward)
-      const x = v.dot(right) / (depth * fullTanH)
-      const y = v.dot(up) / (depth * tanV)
-      return x >= leftEdge && x <= 1 && Math.abs(y) <= 1
-    })
-    if (fits) break
-    distance *= 1.03
-  }
+  target.x = 0 // dead centre: the screen is square-on to your laptop
   return { position: target.clone().addScaledVector(toCamera, distance), target, distance }
 }

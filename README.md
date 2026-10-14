@@ -285,6 +285,10 @@ and about 23 degrees up or down, like a real person in a chair.
 First the camera flies to the seat while looking at the screen. Then it quietly switches to
 "head turning" mode. If it did both at once, the flight looked twisty and strange.
 
+Once you are sitting, moving to the next seat with the arrow keys is different: the camera just
+slides straight across, still looking at the screen. That takes about a quarter of a second, so
+hopping from seat to seat feels quick, like leaning over to the next chair.
+
 </details>
 
 <details>
@@ -487,9 +491,13 @@ the camera as close as it can while the whole screen and every seat still fit. W
 lower, "standing at the back" view. Tall phone screens get a higher view from above. It does this
 again when you resize the window.
 
+The camera always stays exactly in the middle of the room, looking straight at the screen, so the
+theater never looks turned or tilted. (An earlier version slid the camera sideways to make room for
+the panel, and that made the whole room look a little turned to the right.)
+
 The info panel on the left can now be folded away with the ◂ button. On small laptop screens it
-starts folded, so it does not cover the seats. When it is open, the camera centers the room in the
-space next to it.
+starts folded, so it does not cover the seats. When it is open, the room is framed a little
+smaller so the panel does not cover it.
 
 </details>
 
