@@ -192,7 +192,7 @@ Done:
 Still to do:
 - Split the 3D bundle (~470 KB zipped) into smaller chunks.
 - Analytics: which seats people preview vs. which they buy.
-- Demo video, LinkedIn post.
+- LinkedIn post. (Demo video done: docs/demo.mp4, linked from the README.)
 
 ## Folder map
 

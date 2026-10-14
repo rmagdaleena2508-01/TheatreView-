@@ -4,12 +4,22 @@
 
 **Sit in a movie seat before you buy the ticket.**
 
-**▶ Try it live: [theatre-view.vercel.app](https://theatre-view.vercel.app)**
+**[▶ Try it live](https://theatre-view.vercel.app)** · **[Watch the demo](docs/demo.mp4)** · [How it works](#how-it-works) · [My Thinking](#my-thinking)
 
 Pick a seat in a 3D movie theater. The camera flies into that seat. You see the screen just like
 you would from there. Then you know if it is a good seat.
 
 ![The 3D theater with a seat picked and a line from the seat to the screen](docs/images/overview.jpg)
+
+## Demo
+
+[![Watch the 1-minute demo: pick a seat, fly in, watch from there](docs/images/demo-poster.jpg)](docs/demo.mp4)
+
+A one-minute screen recording: picking a theater and a movie, sitting in a few seats, hopping
+between them, and flying back out. (The recording has no sound. The movie clips in it are Spider-Man
+trailers played from YouTube; they belong to Sony Pictures and Marvel.)
+
+Or open it yourself: **[theatre-view.vercel.app](https://theatre-view.vercel.app)**
 
 ## Why I made this
 
@@ -44,7 +54,10 @@ block you? TheatreView lets you find out first.
 
 ## Try it
 
-You need [Node.js](https://nodejs.org) 20.19 or newer.
+The easiest way is the live site: **[theatre-view.vercel.app](https://theatre-view.vercel.app)**.
+It works in Chrome, Edge, Brave, Firefox and Safari on a laptop or desktop.
+
+To run it on your own computer, you need [Node.js](https://nodejs.org) 20.19 or newer.
 
 ```bash
 git clone https://github.com/rmagdaleena2508-01/TheatreView-.git
@@ -261,7 +274,7 @@ sign-in is turned on in Supabase and the keys are added to Vercel.
 - ✅ Tested with 100 people at once.
 - Split the big 3D code into smaller pieces.
 - Count which seats people look at and which seats they buy.
-- Make a demo video.
+- ✅ Make a demo video (in the Demo section above).
 
 </details>
 
@@ -802,7 +815,8 @@ supabase/
   seed.sql            demo theaters and showtimes
 docs/
   CINEMA_RESEARCH.md  real theater facts, design rules, and links
-  images/             screenshots and the link preview picture
+  demo.mp4            the one-minute demo recording (no sound)
+  images/             screenshots, the demo preview, and the link preview picture
 public/
   og-image.png        the picture shown when someone shares the link
 .github/workflows/
