@@ -4,7 +4,7 @@
 
 **Sit in a movie seat before you buy the ticket.**
 
-**[▶ Try it live](https://theatre-view.vercel.app)** · **[Watch the demo](docs/demo.mp4)** · [How it works](#how-it-works) · [My Thinking](#my-thinking)
+**[▶ Try it live](https://theatre-view.vercel.app)** · **[Watch the demo](docs/demo.mp4)** · [How it works](#how-it-works) · [My Thinking](#my-thinking) · [AI use](#ai-use-and-responsibility)
 
 Pick a seat in a 3D movie theater. The camera flies into that seat. You see the screen just like
 you would from there. Then you know if it is a good seat.
@@ -890,6 +890,39 @@ If you find a bug, please open an issue and tell me what you clicked and what yo
 - [StadiView](https://github.com/fengjun8/stadiview), a stadium version that showed me how to handle lots of seats.
 - [pmndrs](https://github.com/pmndrs), the people who make React Three Fiber, drei, zustand and maath.
 - The README layout was inspired by [Best-README-Template](https://github.com/othneildrew/Best-README-Template) and [awesome-readme](https://github.com/matiassingers/awesome-readme).
+
+## AI use and responsibility
+
+In creating this project, I collaborated with **Claude Code (Anthropic's Claude Opus 5.5)** and
+**OpenAI Codex** to assist with research, writing code, finding and fixing bugs, measuring speed,
+and drafting documentation.
+
+**What I did myself:** I came up with the idea after seeing it on LinkedIn, planned the features
+and the six phases on paper, decided how the app should look and behave, chose the theaters and
+movies, tested every change on my own laptop, and asked for fixes whenever something felt wrong
+(for example the camera lag, the chairs flickering, and the YouTube buttons appearing on hover).
+
+**What the AI helped with:**
+
+- Researching cinema design rules, screen sizes, and the best tools for 3D on the web
+- Writing and changing the code (React, three.js, Supabase) based on my instructions
+- Running checks: building the app, Lighthouse speed tests, load tests, and screenshots
+- Drafting this README, the plan, and the commit messages, which I then edited and approved
+
+**How I reviewed it:** I tried every feature in the browser, both on my computer and on the live
+site, before keeping it. The code also had to pass the TypeScript build and the lint check. The
+facts about real cinemas link to their sources in [docs/CINEMA_RESEARCH.md](docs/CINEMA_RESEARCH.md)
+so anyone can check them.
+
+I affirm that all AI-generated and co-created content underwent thorough review and evaluation. The
+final output accurately reflects my understanding, expertise, and intended meaning. While AI
+assistance was instrumental in the process, I maintain full responsibility for the content, its
+accuracy, and its presentation.
+
+**Context:** This is a personal learning and portfolio project. It is not a school assignment and
+not a product of any company. It is not connected to Sony Pictures, Marvel, Blender, IMAX, Dolby or
+any cinema named here. This disclosure is made in the spirit of transparency and to acknowledge the
+role of AI in the creation process.
 
 ## License
 
