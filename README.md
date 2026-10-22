@@ -893,9 +893,9 @@ If you find a bug, please open an issue and tell me what you clicked and what yo
 
 ## AI use and responsibility
 
-In creating this project, I collaborated with **Claude Code (Anthropic's Claude Opus 5.5)** and
-**OpenAI Codex** to assist with research, writing code, finding and fixing bugs, measuring speed,
-and drafting documentation.
+In creating this project, I collaborated with **Claude Code (Anthropic's Claude Opus 5.5)**, the only
+AI tool I used, to assist with research, writing code, finding and fixing bugs, measuring speed, and
+drafting documentation.
 
 **What I did myself:** I came up with the idea after seeing it on LinkedIn, planned the features
 and the six phases on paper, decided how the app should look and behave, chose the theaters and
