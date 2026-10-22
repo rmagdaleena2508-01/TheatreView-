@@ -885,7 +885,7 @@ If you find a bug, please open an issue and tell me what you clicked and what yo
 
 ## Thank you
 
-- The LinkedIn post that gave me this idea.
+- The LinkedIn post that gave me this idea.(also my mum's scolding cause once i booked a seat with bad view )
 - [Codrops: Cinema Seat Preview Experiment](https://tympanus.net/codrops/?p=25885), an early version of this idea.
 - [StadiView](https://github.com/fengjun8/stadiview), a stadium version that showed me how to handle lots of seats.
 - [pmndrs](https://github.com/pmndrs), the people who make React Three Fiber, drei, zustand and maath.
@@ -895,3 +895,4 @@ If you find a bug, please open an issue and tell me what you clicked and what yo
 
 [MIT](LICENSE) for the code. You can use it, change it and share it. Just keep the license file.
 The movies and the font keep their own licenses (see Credits and licenses).
+@Magdaleena R
